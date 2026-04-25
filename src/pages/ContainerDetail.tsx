@@ -338,6 +338,7 @@ const ContainerDetail: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
         {activeTab === 'history' && (
           <div className="space-y-6">
             <h3 className="text-xl font-black uppercase">Configuration Snapshots</h3>
