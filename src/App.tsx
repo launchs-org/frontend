@@ -40,7 +40,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <BrowserRouter basename="/ui">
+    <BrowserRouter basename="/ui/">
       <Layout>
         <Routes>
           <Route path="/" element={<Dashboard />} />
