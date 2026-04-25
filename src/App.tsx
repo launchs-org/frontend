@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import ContainerDetail from './pages/ContainerDetail';
+import History from './pages/History';
+import Monitoring from './pages/Monitoring';
 
 const App: React.FC = () => {
   return (
@@ -15,6 +17,8 @@ const App: React.FC = () => {
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/containers/:id" element={<ContainerDetail />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/monitoring" element={<Monitoring />} />
           {/* Add more routes here as they are created */}
           <Route path="*" element={
             <div className="flex flex-col items-center justify-center h-full space-y-4">

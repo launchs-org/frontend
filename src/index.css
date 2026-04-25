@@ -1,14 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #000000;
-  --color-accent: #ffffff;
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --color-google-blue: #1a73e8;
+  --color-google-red: #d93025;
+  --color-google-yellow: #f9ab00;
+  --color-google-green: #1e8e3e;
+  --color-bg-gray: #f8f9fa;
+  --font-sans: "Roboto", "Inter", system-ui, -apple-system, sans-serif;
 }
 
 :root {
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #f8f9fa;
+  color: #3c4043;
 }
 
 body {
@@ -17,44 +20,52 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for monochrome look */
+/* Material Design style scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #dadce0;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #000;
+  background: #bdc1c6;
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+.google-card {
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  transition: box-shadow 0.2s ease-in-out;
 }
 
-.mono-border {
-  border: 1px solid #000000;
+.google-card:hover {
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15);
 }
 
-.mono-shadow {
-  box-shadow: 4px 4px 0px 0px #000000;
+.btn-primary {
+  background-color: #1a73e8;
+  color: white;
+  padding: 8px 24px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.2s;
 }
 
-.mono-shadow-hover:hover {
-  box-shadow: 6px 6px 0px 0px #000000;
-  transform: translate(-2px, -2px);
+.btn-primary:hover {
+  background-color: #1765cc;
+  box-shadow: 0 1px 2px 0 rgba(66,133,244,0.30), 0 1px 3px 1px rgba(66,133,244,0.15);
 }
 
-.transition-all-200 {
-  transition: all 0.2s ease-in-out;
+.sidebar-item-active {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 0 25px 25px 0;
 }

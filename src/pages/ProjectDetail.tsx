@@ -14,7 +14,8 @@ import {
   RotateCcw,
   StopCircle,
   Clock,
-  GitBranch
+  GitBranch,
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -45,7 +46,7 @@ const ProjectDetail: React.FC = () => {
       try {
         const [projRes, contRes] = await Promise.all([
           api.get(`/v1/projects/${id}`),
-          api.get(`/v1/projects/${id}/containers`) // Assuming this endpoint exists or filter all
+          api.get(`/v1/projects/${id}/containers`)
         ]);
         setProject(projRes.data);
         setContainers(contRes.data || []);
@@ -59,59 +60,59 @@ const ProjectDetail: React.FC = () => {
     fetchData();
   }, [id]);
 
-  if (loading) return <div className="animate-pulse space-y-8">
-    <div className="h-20 bg-gray-100 border border-black" />
-    <div className="grid grid-cols-3 gap-6">
-      {[1, 2, 3].map(i => <div key={i} className="h-64 bg-gray-50 border border-black" />)}
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-64 space-y-4">
+      <div className="w-8 h-8 border-4 border-google-blue border-t-transparent rounded-full animate-spin" />
     </div>
-  </div>;
+  );
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-10 border-b border-black">
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3 text-xs font-bold uppercase tracking-[0.3em] text-gray-400">
-            <Link to="/projects" className="hover:text-black transition-colors">Projects</Link>
-            <span>/</span>
-            <span className="text-black">Detail</span>
-          </div>
-          <h2 className="text-6xl font-black tracking-tighter uppercase">{project?.name}</h2>
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <span className="text-xs font-bold uppercase tracking-widest">Namespace: {project?.namespace}</span>
+      <div className="flex flex-col space-y-4">
+        <Link to="/projects" className="flex items-center space-x-2 text-sm text-[#5f6368] hover:text-google-blue transition-colors w-fit">
+          <ArrowLeft size={16} />
+          <span>プロジェクト一覧へ戻る</span>
+        </Link>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-[#dadce0]">
+          <div className="space-y-1">
+            <h2 className="text-3xl font-normal text-[#202124]">{project?.name}</h2>
+            <div className="flex items-center space-x-4 text-sm text-[#5f6368]">
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-google-green rounded-full" />
+                <span className="font-medium">ネームスペース: {project?.namespace}</span>
+              </div>
+              <span>•</span>
+              <span>ID: {project?.id?.slice(0, 8)}</span>
             </div>
-            <div className="h-4 w-[1px] bg-gray-200" />
-            <span className="text-xs font-bold uppercase tracking-widest text-gray-400">ID: {project?.id?.slice(0, 8)}</span>
           </div>
-        </div>
 
-        <div className="flex items-center space-x-3">
-          <button className="px-6 py-3 border border-black font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-colors">
-            Edit Project
-          </button>
-          <button className="px-6 py-3 bg-black text-white border border-black font-bold text-xs uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center space-x-2">
-            <Plus size={16} />
-            <span>Add Container</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button className="px-4 py-2 border border-[#dadce0] bg-white rounded-md text-sm font-medium text-[#3c4043] hover:bg-gray-50">
+              プロジェクトを編集
+            </button>
+            <button className="flex items-center space-x-2 px-6 py-2 bg-google-blue text-white text-sm font-medium rounded-md hover:shadow-md transition-all">
+              <Plus size={18} />
+              <span>コンテナを追加</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Replicas', value: containers.reduce((acc, c) => acc + c.replicas, 0), icon: Server },
-          { label: 'Health Score', value: '98%', icon: Activity },
-          { label: 'Resources', value: '4.2 CPU / 8GB', icon: Cpu },
+          { label: '合計レプリカ数', value: containers.reduce((acc, c) => acc + c.replicas, 0), icon: Server, color: 'text-blue-600' },
+          { label: '稼働スコア', value: '98%', icon: Activity, color: 'text-green-600' },
+          { label: 'リソース割当', value: '4.2 CPU / 8GB', icon: Cpu, color: 'text-yellow-600' },
         ].map((stat, i) => (
-          <div key={i} className="p-4 border border-black flex items-center space-x-4 bg-gray-50/50">
-            <div className="p-2 bg-white border border-black">
-              <stat.icon size={20} />
+          <div key={i} className="google-card p-5 flex items-center space-x-4">
+            <div className={cn("p-2 rounded-lg bg-gray-50", stat.color)}>
+              <stat.icon size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
-              <p className="text-xl font-black uppercase">{stat.value}</p>
+              <p className="text-xs text-[#5f6368] font-medium uppercase tracking-wider">{stat.label}</p>
+              <p className="text-2xl font-medium text-[#202124]">{stat.value}</p>
             </div>
           </div>
         ))}
@@ -119,32 +120,32 @@ const ProjectDetail: React.FC = () => {
 
       {/* Containers Grid */}
       <div className="space-y-6">
-        <h3 className="text-2xl font-black uppercase tracking-tight">Containers</h3>
+        <h3 className="text-xl font-medium text-[#202124]">コンテナ一覧</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {containers.map((container) => (
             <div 
               key={container.id}
-              className="border border-black bg-white mono-shadow flex flex-col group"
+              className="google-card bg-white flex flex-col group hover:border-google-blue transition-all"
             >
               <div className="p-6 flex-1 space-y-6">
                 <div className="flex justify-between items-start">
                   <div className={cn(
-                    "px-2 py-1 text-[9px] font-black uppercase tracking-widest",
-                    container.status === 'Running' ? "bg-green-100 text-green-700" : "bg-black text-white"
+                    "px-3 py-1 rounded-full text-xs font-medium",
+                    container.status === 'Running' ? "bg-green-100 text-green-700" : "bg-gray-100 text-[#5f6368]"
                   )}>
-                    {container.status}
+                    {container.status === 'Running' ? '稼働中' : container.status}
                   </div>
-                  <div className="flex items-center space-x-1 text-gray-300">
-                    <Database size={14} />
-                    <span className="text-[10px] font-mono">v{container.version || '0.0.1'}</span>
+                  <div className="flex items-center space-x-1 text-gray-400">
+                    <Database size={16} />
+                    <span className="text-xs font-mono">v{container.version || '0.0.1'}</span>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-2xl font-black uppercase tracking-tight group-hover:underline cursor-pointer">
+                  <h4 className="text-xl font-medium text-[#202124] group-hover:text-google-blue cursor-pointer transition-colors">
                     {container.name}
                   </h4>
-                  <div className="mt-2 flex items-center space-x-2 text-xs text-gray-400 font-medium">
+                  <div className="mt-2 flex items-center space-x-2 text-xs text-[#5f6368]">
                     <GitBranch size={14} />
                     <span className="truncate">{container.repository_url.split('/').pop()}</span>
                     <span>•</span>
@@ -152,47 +153,47 @@ const ProjectDetail: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#f1f3f4]">
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Replicas</p>
-                    <p className="text-sm font-black">{container.replicas} Active</p>
+                    <p className="text-[10px] text-[#5f6368] font-medium uppercase">レプリカ</p>
+                    <p className="text-sm font-medium text-[#202124]">{container.replicas} インスタンス</p>
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Last Build</p>
-                    <p className="text-sm font-black flex items-center space-x-1">
-                      <Clock size={12} />
-                      <span>2h ago</span>
+                    <p className="text-[10px] text-[#5f6368] font-medium uppercase">最終ビルド</p>
+                    <p className="text-sm font-medium text-[#202124] flex items-center space-x-1">
+                      <Clock size={14} className="text-gray-400" />
+                      <span>2時間前</span>
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-black p-2 flex items-center justify-between bg-gray-50">
+              <div className="bg-[#f8f9fa] p-3 flex items-center justify-between border-t border-[#dadce0] rounded-b-lg">
                 <div className="flex items-center space-x-1">
-                  <button className="p-2 hover:bg-white border border-transparent hover:border-black transition-all" title="Restart">
-                    <RotateCcw size={14} />
+                  <button className="p-2 hover:bg-white rounded-full text-[#5f6368] hover:text-[#202124] transition-all" title="再起動">
+                    <RotateCcw size={16} />
                   </button>
-                  <button className="p-2 hover:bg-white border border-transparent hover:border-black transition-all text-red-500" title="Stop">
-                    <StopCircle size={14} />
+                  <button className="p-2 hover:bg-white rounded-full text-google-red transition-all" title="停止">
+                    <StopCircle size={16} />
                   </button>
                 </div>
                 <Link 
                   to={`/containers/${container.id}`}
-                  className="px-4 py-2 bg-black text-white text-[10px] font-black uppercase tracking-widest flex items-center space-x-2 hover:bg-gray-800 transition-all"
+                  className="px-4 py-1.5 bg-white border border-[#dadce0] text-xs font-medium text-[#1a73e8] rounded hover:bg-blue-50 transition-all flex items-center space-x-1"
                 >
-                  <span>MANAGE</span>
-                  <ExternalLink size={12} />
+                  <span>管理</span>
+                  <ExternalLink size={14} />
                 </Link>
               </div>
             </div>
           ))}
 
           {/* Empty Add Card */}
-          <button className="border-2 border-dashed border-gray-200 p-6 flex flex-col items-center justify-center space-y-4 hover:border-black hover:bg-gray-50 transition-all group min-h-[300px]">
-            <div className="p-4 bg-gray-100 rounded-full group-hover:bg-black group-hover:text-white transition-all">
+          <button className="border-2 border-dashed border-[#dadce0] rounded-lg p-6 flex flex-col items-center justify-center space-y-4 hover:border-google-blue hover:bg-blue-50/30 transition-all group min-h-[250px]">
+            <div className="p-4 bg-gray-100 rounded-full group-hover:bg-google-blue group-hover:text-white transition-all">
               <Plus size={32} />
             </div>
-            <p className="text-xs font-black uppercase tracking-widest">New Container</p>
+            <p className="text-sm font-medium text-[#5f6368]">コンテナを新規作成</p>
           </button>
         </div>
       </div>
