@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { User } from 'lucide-react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
@@ -9,8 +10,37 @@ import History from './pages/History';
 import Monitoring from './pages/Monitoring';
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('token'));
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 font-sans">
+        <div className="google-card p-10 text-center w-full max-w-md bg-white">
+          <div className="w-16 h-16 bg-blue-50 text-google-blue rounded-full flex items-center justify-center mx-auto mb-6">
+            <User size={32} />
+          </div>
+          <h1 className="text-2xl font-medium text-[#202124] mb-4">ログインが必要です</h1>
+          <p className="text-[#5f6368] mb-8 leading-relaxed">
+            Launchs を管理するには、AuthBase での認証が必要です。下のボタンからログインページへ進んでください。
+          </p>
+          
+          <a 
+            href="/auth/login" 
+            className="inline-block w-full bg-google-blue hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition-all shadow-sm hover:shadow-md"
+          >
+            ログイン画面へ移動
+          </a>
+          
+          <p className="mt-6 text-xs text-gray-400">
+            ログイン後、このページに戻ってきてください。
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/ui">
       <Layout>
         <Routes>
           <Route path="/" element={<Dashboard />} />

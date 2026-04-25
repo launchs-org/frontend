@@ -1,8 +1,6 @@
 import React from 'react';
 import { 
-  Zap, 
   Layers, 
-  Globe, 
   ArrowUpRight, 
   MoreHorizontal,
   Server,
@@ -15,8 +13,6 @@ const Dashboard: React.FC = () => {
   const stats = [
     { name: '稼働中のプロジェクト', value: '12', icon: Box, color: 'text-google-blue' },
     { name: '総コンテナ数', value: '48', icon: Layers, color: 'text-google-green' },
-    { name: '平均レイテンシ', value: '24ms', icon: Zap, color: 'text-google-yellow' },
-    { name: 'ネットワーク通信量', value: '1.2TB', icon: Globe, color: 'text-google-red' },
   ];
 
   return (
@@ -24,12 +20,12 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-2xl font-normal text-[#202124]">ダッシュボード</h2>
-          <p className="text-sm text-[#5f6368] mt-1">システム全体の稼働状況とリソースの使用率を確認できます。</p>
+          <p className="text-sm text-[#5f6368] mt-1">システム全体の稼働状況を確認できます。</p>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {stats.map((stat) => (
           <div key={stat.name} className="google-card p-6">
             <div className="flex justify-between items-start">
