@@ -11,7 +11,11 @@ export const api = axios.create({
 
 // Request interceptor to add JWT token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  // /auth/me specifically uses refresh_token, others use access_token
+  const isMeEndpoint = config.url === '/auth/me' || config.url?.endsWith('/auth/me');
+  const tokenKey = isMeEndpoint ? 'refresh_token' : 'access_token';
+  const token = localStorage.getItem(tokenKey);
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -23,7 +27,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       // Redirect to root or reload to trigger auth check in App.tsx
       window.location.href = '/ui/';
     }

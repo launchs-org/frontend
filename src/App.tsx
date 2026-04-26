@@ -11,12 +11,13 @@ import Monitoring from './pages/Monitoring';
 import { api } from './lib/api';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('token'));
-  const [isVerifying, setIsVerifying] = React.useState(!!localStorage.getItem('token'));
+  const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('access_token'));
+  const [isVerifying, setIsVerifying] = React.useState(!!localStorage.getItem('refresh_token'));
 
   React.useEffect(() => {
     const checkAuth = async () => {
-      if (!localStorage.getItem('token')) {
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) {
         setIsAuthenticated(false);
         setIsVerifying(false);
         return;
