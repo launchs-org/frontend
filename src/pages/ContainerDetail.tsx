@@ -640,50 +640,64 @@ const ContainerDetail: React.FC = () => {
                         ポートを追加
                       </button>
                     </div>
-                    <div className="space-y-3">
-                      {JSON.parse(container.service.ports || '[]').map((p: any, idx: number) => (
-                        <div key={idx} className="flex items-end space-x-2 animate-in slide-in-from-left-2 duration-200">
-
-                          <div className="w-20 space-y-1">
-                            <label className="text-[9px] text-gray-500 font-bold uppercase">Proto</label>
-                            <select 
-                              value={p.protocol}
-                              onChange={(e) => {
-                                const ports = JSON.parse(container.service.ports);
-                                ports[idx].protocol = e.target.value;
+                      <div className="space-y-3">
+                        {JSON.parse(container.service.ports || '[]').map((p: any, idx: number) => (
+                          <div key={idx} className="flex items-end space-x-3 animate-in slide-in-from-left-2 duration-200 bg-white/50 p-3 rounded-lg border border-gray-100">
+                            <div className="w-24 space-y-1">
+                              <label className="text-[9px] text-gray-500 font-bold uppercase tracking-tight">Protocol</label>
+                              <select 
+                                value={p.protocol}
+                                onChange={(e) => {
+                                  const ports = JSON.parse(container.service.ports);
+                                  ports[idx].protocol = e.target.value;
+                                  setContainer({...container, service: {...container.service, ports: JSON.stringify(ports)}});
+                                }}
+                                className="google-input !py-1.5 text-xs bg-white"
+                              >
+                                <option>TCP</option>
+                                <option>UDP</option>
+                              </select>
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <label className="text-[9px] text-gray-500 font-bold uppercase tracking-tight">Public Port</label>
+                              <input 
+                                type="number" 
+                                value={p.port}
+                                onChange={(e) => {
+                                  const ports = JSON.parse(container.service.ports);
+                                  ports[idx].port = parseInt(e.target.value);
+                                  setContainer({...container, service: {...container.service, ports: JSON.stringify(ports)}});
+                                }}
+                                className="google-input !py-1.5 text-xs bg-white" 
+                                placeholder="80"
+                              />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <label className="text-[9px] text-gray-500 font-bold uppercase tracking-tight">Target Port</label>
+                              <input 
+                                type="number" 
+                                value={p.target}
+                                onChange={(e) => {
+                                  const ports = JSON.parse(container.service.ports);
+                                  ports[idx].target = parseInt(e.target.value);
+                                  setContainer({...container, service: {...container.service, ports: JSON.stringify(ports)}});
+                                }}
+                                className="google-input !py-1.5 text-xs bg-white" 
+                                placeholder="8080"
+                              />
+                            </div>
+                            <button 
+                              onClick={() => {
+                                const ports = JSON.parse(container.service.ports).filter((_: any, i: number) => i !== idx);
                                 setContainer({...container, service: {...container.service, ports: JSON.stringify(ports)}});
                               }}
-                              className="google-input !py-1 text-xs"
+                              className="p-2 text-gray-400 hover:text-google-red transition-colors mb-0.5"
                             >
-                              <option>TCP</option>
-                              <option>UDP</option>
-                            </select>
+                              <X size={18} />
+                            </button>
                           </div>
-                          <div className="w-16 space-y-1">
-                            <label className="text-[9px] text-gray-500 font-bold uppercase">Port</label>
-                            <input 
-                              type="number" 
-                              value={p.port}
-                              onChange={(e) => {
-                                const ports = JSON.parse(container.service.ports);
-                                ports[idx].port = parseInt(e.target.value);
-                                setContainer({...container, service: {...container.service, ports: JSON.stringify(ports)}});
-                              }}
-                              className="google-input !py-1 text-xs" 
-                            />
-                          </div>
-                          <button 
-                            onClick={() => {
-                              const ports = JSON.parse(container.service.ports).filter((_: any, i: number) => i !== idx);
-                              setContainer({...container, service: {...container.service, ports: JSON.stringify(ports)}});
-                            }}
-                            className="p-1.5 text-gray-300 hover:text-google-red transition-colors"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
                     <button 
                       onClick={async () => {
                         const res = await api.patch(`/app/v1/containers/${id}/service`, {
