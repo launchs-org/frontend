@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { User } from 'lucide-react';
+import { User, Loader2 } from 'lucide-react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
@@ -8,9 +8,43 @@ import ProjectDetail from './pages/ProjectDetail';
 import ContainerDetail from './pages/ContainerDetail';
 import History from './pages/History';
 import Monitoring from './pages/Monitoring';
+import { api } from './lib/api';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('token'));
+  const [isVerifying, setIsVerifying] = React.useState(!!localStorage.getItem('token'));
+
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      if (!localStorage.getItem('token')) {
+        setIsAuthenticated(false);
+        setIsVerifying(false);
+        return;
+      }
+
+      try {
+        await api.get('/auth/me');
+        setIsAuthenticated(true);
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          setIsAuthenticated(false);
+        }
+      } finally {
+        setIsVerifying(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center justify-center p-4 font-sans">
+        <Loader2 className="w-8 h-8 text-google-blue animate-spin mb-4" />
+        <p className="text-[#5f6368] font-medium">認証状態を確認中...</p>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

@@ -86,89 +86,65 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="space-y-4">
         {/* Active Deployments */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-lg font-medium text-[#202124]">アクティブなデプロイ</h3>
-            <Link to="/projects" className="text-sm text-google-blue font-medium hover:underline">プロジェクト一覧</Link>
-          </div>
-          <div className="google-card overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#f8f9fa] border-b border-[#dadce0]">
-                <tr>
-                  <th className="px-6 py-4 font-medium text-[#5f6368]">コンテナ名</th>
-                  <th className="px-6 py-4 font-medium text-[#5f6368]">ステータス</th>
-                  <th className="px-6 py-4 font-medium text-[#5f6368]">バージョン</th>
-                  <th className="px-6 py-4"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#dadce0]">
-                {loading ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-10 text-center text-[#5f6368]">読み込み中...</td>
-                  </tr>
-                ) : containers.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-10 text-center text-[#5f6368]">デプロイされたコンテナはありません</td>
-                  </tr>
-                ) : (
-                  containers.slice(0, 5).map((container) => (
-                    <tr key={container.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-3">
-                          <Server size={18} className="text-google-blue" />
-                          <div>
-                            <p className="font-medium text-[#202124]">{container.name}</p>
-                            <p className="text-xs text-[#5f6368] truncate max-w-[200px]">{container.repository_url}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={cn(
-                          "flex items-center space-x-2",
-                          container.status === 'Running' ? "text-google-green" : "text-[#5f6368]"
-                        )}>
-                          {container.status === 'Running' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
-                          <span className="font-medium">{container.status === 'Running' ? '稼働中' : container.status}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs text-[#3c4043]">v{container.version || '---'}</span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Link to={`/containers/${container.id}`} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 inline-block">
-                          <MoreHorizontal size={18} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-lg font-medium text-[#202124]">アクティブなデプロイ</h3>
+          <Link to="/projects" className="text-sm text-google-blue font-medium hover:underline">プロジェクト一覧</Link>
         </div>
-
-        {/* Realtime Activity */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-[#202124] px-2">リアルタイムのアクティビティ</h3>
-          <div className="google-card bg-[#202124] text-[#e8eaed] p-5 h-[400px] font-mono text-[12px] overflow-hidden relative">
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#3c4043]">
-              <span className="text-[#9aa0a6]">system.log</span>
-              <div className="flex space-x-2">
-                <div className="w-3 h-3 rounded-full bg-[#3c4043]" />
-                <div className="w-3 h-3 rounded-full bg-[#3c4043]" />
-              </div>
-            </div>
-            <div className="space-y-2 opacity-90 overflow-y-auto h-full pr-2">
-              <p><span className="text-google-green">[OK]</span> データベース接続確認完了</p>
-              <p><span className="text-google-blue">[INFO]</span> ダッシュボードデータを取得しました</p>
-              {containers.length > 0 && (
-                <p><span className="text-google-blue">[INFO]</span> 最新のデプロイ: {containers[0].name}</p>
+        <div className="google-card overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-[#f8f9fa] border-b border-[#dadce0]">
+              <tr>
+                <th className="px-6 py-4 font-medium text-[#5f6368]">コンテナ名</th>
+                <th className="px-6 py-4 font-medium text-[#5f6368]">ステータス</th>
+                <th className="px-6 py-4 font-medium text-[#5f6368]">バージョン</th>
+                <th className="px-6 py-4"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#dadce0]">
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-[#5f6368]">読み込み中...</td>
+                </tr>
+              ) : containers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-[#5f6368]">デプロイされたコンテナはありません</td>
+                </tr>
+              ) : (
+                containers.slice(0, 5).map((container) => (
+                  <tr key={container.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <Server size={18} className="text-google-blue" />
+                        <div>
+                          <p className="font-medium text-[#202124]">{container.name}</p>
+                          <p className="text-xs text-[#5f6368] truncate max-w-[200px]">{container.repository_url}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className={cn(
+                        "flex items-center space-x-2",
+                        container.status === 'Running' ? "text-google-green" : "text-[#5f6368]"
+                      )}>
+                        {container.status === 'Running' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                        <span className="font-medium">{container.status === 'Running' ? '稼働中' : container.status}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="bg-gray-100 px-2 py-0.5 rounded text-xs text-[#3c4043]">v{container.version || '---'}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link to={`/containers/${container.id}`} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 inline-block">
+                        <MoreHorizontal size={18} />
+                      </Link>
+                    </td>
+                  </tr>
+                ))
               )}
-              <p className="animate-pulse">_</p>
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
