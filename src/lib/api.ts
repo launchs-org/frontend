@@ -1,4 +1,4 @@
-import axios, { InternalAxiosRequestConfig } from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 // Extend AxiosRequestConfig to include useRefreshToken
 declare module 'axios' {
@@ -39,7 +39,7 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 
     const refreshToken = getRefreshToken();
     if (refreshToken) {
-      config.headers.Authorization = `Bearer ${refreshToken}`;
+      config.headers.Authorization = refreshToken;
     }
     return config;
   }
@@ -69,7 +69,7 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 
   const token = getAccessToken();
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = token;
   }
   return config;
 });
