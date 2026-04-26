@@ -11,12 +11,12 @@ import Monitoring from './pages/Monitoring';
 import { api } from './lib/api';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('access_token'));
-  const [isVerifying, setIsVerifying] = React.useState(!!localStorage.getItem('refresh_token'));
+  const [isAuthenticated, setIsAuthenticated] = React.useState(!!sessionStorage.getItem('access_token'));
+  const [isVerifying, setIsVerifying] = React.useState(!!localStorage.getItem('token'));
 
   React.useEffect(() => {
     const checkAuth = async () => {
-      const refreshToken = localStorage.getItem('refresh_token');
+      const refreshToken = localStorage.getItem('token');
       if (!refreshToken) {
         setIsAuthenticated(false);
         setIsVerifying(false);
@@ -24,9 +24,11 @@ const App: React.FC = () => {
       }
 
       try {
-        await api.get('/auth/me');
+        // Use absolute path and specify useRefreshToken option
+        await api.get(import.meta.env.VITE_API_AUTH_ME_PATH || '/auth/me', { useRefreshToken: true });
         setIsAuthenticated(true);
       } catch (error: any) {
+
         if (error.response?.status === 401) {
           setIsAuthenticated(false);
         }
@@ -37,6 +39,7 @@ const App: React.FC = () => {
 
     checkAuth();
   }, []);
+
 
   if (isVerifying) {
     return (

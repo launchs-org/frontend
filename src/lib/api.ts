@@ -1,9 +1,14 @@
-import axios from 'axios';
+import axios, { InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/app';
+// Extend AxiosRequestConfig to include useRefreshToken
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    useRefreshToken?: boolean;
+  }
+}
 
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: '', // Always empty, use absolute or full paths
   headers: {
     'Content-Type': 'application/json',
   },
@@ -12,59 +17,75 @@ export const api = axios.create({
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 let refreshPromise: Promise<any> | null = null;
 
-// Request interceptor to add JWT token
-api.interceptors.request.use(async (config) => {
-  // /auth/me and /auth/token specifically use refresh_token, others use access_token
-  const isAuthEndpoint = config.url === '/auth/me' || config.url === '/auth/token' || 
-                         config.url?.endsWith('/auth/me') || config.url?.endsWith('/auth/token');
-  
-  if (isAuthEndpoint) {
-    const refreshToken = localStorage.getItem('refresh_token');
+const getRefreshToken = () => localStorage.getItem('token');
+const getAccessToken = () => sessionStorage.getItem('access_token');
+const setAccessToken = (token: string) => {
+  sessionStorage.setItem('access_token', token);
+  sessionStorage.setItem('access_token_timestamp', Date.now().toString());
+};
+const clearTokens = () => {
+  localStorage.removeItem('token');
+  sessionStorage.removeItem('access_token');
+  sessionStorage.removeItem('access_token_timestamp');
+};
+
+const REFRESH_PATH = import.meta.env.VITE_API_REFRESH_PATH || '/auth/token';
+
+// Request interceptor to add JWT token and handle URL prefixing
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  // If useRefreshToken is true, use refresh token
+  if (config.useRefreshToken) {
+
+
+    const refreshToken = getRefreshToken();
     if (refreshToken) {
       config.headers.Authorization = `Bearer ${refreshToken}`;
     }
     return config;
   }
 
-  // Check if access token is expired or missing
-  const lastFetched = parseInt(localStorage.getItem('access_token_timestamp') || '0');
-  const now = Date.now();
+  // Otherwise, use access token. Check if it's expired or missing first.
+  // Don't auto-refresh if we are currently calling the refresh endpoint itself
+  const isRefreshing = config.url === REFRESH_PATH || config.url?.endsWith(REFRESH_PATH);
   
-  if (!localStorage.getItem('access_token') || (now - lastFetched > CACHE_DURATION)) {
-    if (!refreshPromise) {
-      refreshPromise = api.get('/auth/token').finally(() => { refreshPromise = null; });
-    }
-    try {
-      await refreshPromise;
-    } catch (e) {
-      // Refresh failed, will be handled by 401 logic if needed
+  if (!isRefreshing) {
+    const lastFetched = parseInt(sessionStorage.getItem('access_token_timestamp') || '0');
+    const now = Date.now();
+    
+    if (!getAccessToken() || (now - lastFetched > CACHE_DURATION)) {
+      if (!refreshPromise) {
+        // Refresh token call itself needs the refresh token
+        refreshPromise = api.get(REFRESH_PATH, { useRefreshToken: true }).finally(() => { 
+          refreshPromise = null; 
+        });
+      }
+      try {
+        await refreshPromise;
+      } catch (e) {
+        // Refresh failed
+      }
     }
   }
 
-  const token = localStorage.getItem('access_token');
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Response interceptor to handle 401
+// Response interceptor to handle token storage and 401
 api.interceptors.response.use(
   (response) => {
-    // If this was a token refresh call, save the new access token
-    const isTokenEndpoint = response.config.url === '/auth/token' || response.config.url?.endsWith('/auth/token');
-    if (isTokenEndpoint && response.data?.token) {
-      localStorage.setItem('access_token', response.data.token);
-      localStorage.setItem('access_token_timestamp', Date.now().toString());
+    // If this was a refresh call (via useRefreshToken), save the result as access token
+    if (response.config.useRefreshToken && response.data?.token) {
+      setAccessToken(response.data.token);
     }
     return response;
   },
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('access_token_timestamp');
-      // Redirect to root or reload to trigger auth check in App.tsx
+      clearTokens();
       window.location.href = '/ui/';
     }
     return Promise.reject(error);
@@ -72,3 +93,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+

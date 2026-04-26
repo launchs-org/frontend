@@ -45,9 +45,10 @@ const ProjectDetail: React.FC = () => {
     const fetchData = async () => {
       try {
         const [projRes, contRes] = await Promise.all([
-          api.get(`/v1/projects/${id}`),
-          api.get(`/v1/projects/${id}/containers`)
+          api.get(`/app/v1/projects/${id}`),
+          api.get(`/app/v1/projects/${id}/containers`)
         ]);
+
         setProject(projRes.data);
         setContainers(contRes.data || []);
       } catch (error) {

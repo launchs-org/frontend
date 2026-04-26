@@ -42,8 +42,9 @@ const ContainerDetail: React.FC = () => {
   useEffect(() => {
     const fetchContainer = async () => {
       try {
-        const res = await api.get(`/v1/containers/${id}`);
+        const res = await api.get(`/app/v1/containers/${id}`);
         setContainer(res.data);
+
       } catch (err) {
         console.error(err);
       }
@@ -53,8 +54,9 @@ const ContainerDetail: React.FC = () => {
 
   useEffect(() => {
     if (activeTab === 'builds') {
-      api.get(`/v1/containers/${id}/build-jobs`).then(res => setBuildJobs(res.data || []));
+      api.get(`/app/v1/containers/${id}/build-jobs`).then(res => setBuildJobs(res.data || []));
     }
+
   }, [id, activeTab]);
 
   useEffect(() => {
@@ -64,7 +66,8 @@ const ContainerDetail: React.FC = () => {
   const startLogStream = (jobId: string) => {
     setLogs([]);
     setStreaming(true);
-    const eventSource = new EventSource(`${api.defaults.baseURL}/stream/build-jobs/${jobId}`);
+    const eventSource = new EventSource(`/app/stream/build-jobs/${jobId}`);
+
     
     eventSource.onmessage = (event) => {
       setLogs(prev => [...prev, event.data]);

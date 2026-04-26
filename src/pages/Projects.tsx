@@ -25,8 +25,9 @@ const Projects: React.FC = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await api.get('/v1/projects');
+        const response = await api.get('/app/v1/projects');
         setProjects(response.data || []);
+
       } catch (error) {
         console.error('Failed to fetch projects:', error);
       } finally {

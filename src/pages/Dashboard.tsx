@@ -38,9 +38,10 @@ const Dashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         const [statsRes, contRes] = await Promise.all([
-          api.get('/v1/stats'),
-          api.get('/v1/containers')
+          api.get('/app/v1/stats'),
+          api.get('/app/v1/containers')
         ]);
+
         setStats(statsRes.data);
         setContainers(contRes.data || []);
       } catch (error) {
