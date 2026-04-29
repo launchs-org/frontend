@@ -9,6 +9,7 @@ export default defineConfig({
   server: {
     watch: {
       usePolling: true
-    }
+    },
+    allowedHosts: ["test.launchs.org"]
   }
 })
