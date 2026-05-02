@@ -128,89 +128,64 @@ const ContainerDetail: React.FC = () => {
   }, [execLogs]);
 
 
-  // Build Logs Stream with Auto-Reconnect
-  const startBuildLogStream = async (jobId: string) => {
+  // Build Logs Stream with WebSocket
+  const startBuildLogStream = (jobId: string) => {
+    wsRef.current?.close();
+    setBuildLogs([]);
+
     const selectedJob = buildJobs.find(j => j.id === jobId);
-    if (selectedJob && (selectedJob.status === 'Success' || selectedJob.status === 'Failed' || selectedJob.status === 'Cancelled')) {
-      if (selectedJob.build_log) {
-        setBuildLogs(selectedJob.build_log.split('\n'));
-      } else {
-        setBuildLogs(['ログが保存されていません。']);
-      }
+    if (selectedJob && (selectedJob.status === 'Success' || selectedJob.status === 'Failed' || selectedJob.status === 'Cancelled' || selectedJob.status === 'Succeeded' || selectedJob.status === 'Complete')) {
       setStreamingBuild(false);
+      // APIから履歴ログを取得
+      api.get(`/app/v1/build-jobs/${jobId}/logs`)
+        .then(res => {
+          const logData = res.data.data.log;
+          if (logData) {
+            setBuildLogs(logData.split('\n').filter((l: string) => l.trim() !== ''));
+          } else {
+            setBuildLogs(['ログが保存されていません。']);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch build logs", err);
+          setBuildLogs(['ログの取得に失敗しました。']);
+        });
       return;
     }
 
-    buildSseRef.current?.abort();
-    const controller = new AbortController();
-    buildSseRef.current = controller;
-
-    setBuildLogs([]);
     setStreamingBuild(true);
     
     const token = sessionStorage.getItem('access_token');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    // トークンをクエリパラメータとして渡す
+    const ws = new WebSocket(`${protocol}//${host}/app/v1/ws/build-jobs/${jobId}?token=${encodeURIComponent(token || '')}`);
+    wsRef.current = ws;
 
-    while (!controller.signal.aborted && activeTab === 'build-logs') {
+    ws.onmessage = (event) => {
       try {
-        const response = await fetch(`/app/v1/stream/build-jobs/${jobId}`, {
-          headers: { 'Authorization': token || '' },
-          signal: controller.signal
-        });
-
-        if (!response.ok) throw new Error('Stream disconnected');
-
-        const reader = response.body?.getReader();
-        if (!reader) break;
-
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let currentEvent = 'message';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-
-            if (trimmed.startsWith('event: ')) {
-              currentEvent = trimmed.substring(7);
-            } else if (trimmed.startsWith('data: ')) {
-              const data = trimmed.substring(6);
-              try {
-                const json = JSON.parse(data);
-                
-                if (currentEvent === 'done') {
-                  setStreamingBuild(false);
-                  fetchBuildJobs(); // Refresh to get final logs
-                  return; 
-                }
-
-                if (json.log) {
-                  setBuildLogs(prev => [...prev, json.log]);
-                } else if (json.status) {
-                  // Handle status updates if needed
-                }
-              } catch (e) { }
-              currentEvent = 'message'; // Reset for next event
-            }
-          }
+        const data = JSON.parse(event.data);
+        if (data.event === 'log' && data.log) {
+          const lines = data.log.split('\n');
+          setBuildLogs(prev => [...prev, ...lines.filter((l: string) => l.trim() !== '')]);
+        } else if (data.event === 'done') {
+          setStreamingBuild(false);
+          fetchBuildJobs();
+          ws.close();
         }
-        // If it finished normally but build is still in progress, it might restart.
-        // If build status is 'Success' or 'Failed', we might stop, but the user wants to reconnect.
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (err: any) {
-        if (err.name === 'AbortError') break;
-        console.error("Build stream error, reconnecting...", err);
-        await new Promise(resolve => setTimeout(resolve, 3000));
+      } catch (e) {
+        console.error("WS parse error", e);
       }
-    }
-    setStreamingBuild(false);
+    };
+
+    ws.onclose = () => {
+      setStreamingBuild(false);
+    };
+
+    ws.onerror = (err) => {
+      console.error("WS error", err);
+      setStreamingBuild(false);
+    };
   };
 
   // Execution Logs Stream with Auto-Reconnect
