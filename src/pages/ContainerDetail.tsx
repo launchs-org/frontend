@@ -158,8 +158,8 @@ const ContainerDetail: React.FC = () => {
     const token = sessionStorage.getItem('access_token');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    // トークンをクエリパラメータとして渡す
-    const ws = new WebSocket(`${protocol}//${host}/app/v1/ws/build-jobs/${jobId}?token=${encodeURIComponent(token || '')}`);
+    // トークンをサブプロトコルとして渡す (URLには含めない)
+    const ws = new WebSocket(`${protocol}//${host}/app/v1/ws/build-jobs/${jobId}`, token || '');
     wsRef.current = ws;
 
     ws.onmessage = (event) => {
@@ -188,61 +188,44 @@ const ContainerDetail: React.FC = () => {
     };
   };
 
-  // Execution Logs Stream with Auto-Reconnect
-  const startExecLogStream = async () => {
-    execSseRef.current?.abort();
-    const controller = new AbortController();
-    execSseRef.current = controller;
-
+  // Execution Logs Stream with WebSocket
+  const startExecLogStream = () => {
+    execWsRef.current?.close();
     setExecLogs([]);
     setStreamingExec(true);
 
     const token = sessionStorage.getItem('access_token');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    
+    // トークンをサブプロトコルとして渡す (URLには含めない)
+    const ws = new WebSocket(`${protocol}//${host}/app/v1/ws/containers/${id}/logs`, token || '');
+    execWsRef.current = ws;
 
-    while (!controller.signal.aborted && activeTab === 'exec-logs') {
+    ws.onmessage = (event) => {
       try {
-        const response = await fetch(`/app/v1/stream/containers/${id}/logs`, {
-          headers: { 'Authorization': token || '' },
-          signal: controller.signal
-        });
-
-        if (!response.ok) throw new Error('Stream disconnected');
-
-        const reader = response.body?.getReader();
-        if (!reader) break;
-
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const json = JSON.parse(line.substring(6));
-                if (json.logs) {
-                  setExecLogs(json.logs);
-                } else {
-                  setExecLogs(prev => [...prev, json]);
-                }
-              } catch (e) { }
-            }
-          }
+        const data = JSON.parse(event.data);
+        if (data.event === 'log') {
+          const entry: LogEntry = {
+            pod_name: data.pod || 'unknown',
+            timestamp: data.timestamp || new Date().toISOString(),
+            message: data.log || ''
+          };
+          setExecLogs(prev => [...prev, entry]);
         }
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (err: any) {
-        if (err.name === 'AbortError') break;
-        console.error("Exec stream error, reconnecting...", err);
-        await new Promise(resolve => setTimeout(resolve, 3000));
+      } catch (e) {
+        console.error("Exec WS parse error", e);
       }
-    }
-    setStreamingExec(false);
+    };
+
+    ws.onclose = () => {
+      setStreamingExec(false);
+    };
+
+    ws.onerror = (err) => {
+      console.error("Exec WS error", err);
+      setStreamingExec(false);
+    };
   };
 
 
@@ -472,33 +455,48 @@ const ContainerDetail: React.FC = () => {
 
 
         {activeTab === 'exec-logs' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center px-2">
-              <h3 className="text-lg font-medium text-[#202124]">実行ログ (Stdout/Stderr)</h3>
-              <div className="flex items-center space-x-2">
-                <div className={cn("w-2.5 h-2.5 rounded-full", streamingExec ? "bg-google-green animate-pulse" : "bg-gray-300")} />
-                <span className="text-xs font-medium text-[#5f6368]">{streamingExec ? 'ストリーミング中' : '切断済み'}</span>
+          <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
+              <div className="flex items-center space-x-4">
+                <div className="p-2.5 bg-green-50 text-google-green rounded-xl">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-medium text-[#202124]">コンテナ実行ログ</h3>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <div className={cn("w-2 h-2 rounded-full", streamingExec ? "bg-google-green animate-pulse" : "bg-gray-300")} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#5f6368]">{streamingExec ? 'ストリーミング中' : 'ログ表示中'}</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="bg-[#202124] text-[#e8eaed] p-6 font-mono text-[13px] leading-relaxed min-h-[500px] rounded-lg shadow-inner max-h-[600px] overflow-y-auto">
+
+            <div className="bg-[#1e1e1e] text-[#d4d4d4] p-6 font-mono text-[13px] leading-relaxed min-h-[600px] rounded-2xl shadow-2xl border border-[#333] max-h-[75vh] overflow-y-auto custom-scrollbar relative">
+              <div className="sticky top-0 right-0 flex justify-end pointer-events-none mb-4">
+                 <div className="bg-white/5 backdrop-blur px-3 py-1 rounded-full text-[10px] text-white/40 border border-white/10 uppercase tracking-tighter">
+                   Runtime Output
+                 </div>
+              </div>
               {execLogs.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-[#9aa0a6] py-20 space-y-2">
-                  <Loader2 className="animate-spin" size={32} opacity={0.3} />
-                  <p>ログを収集中...</p>
+                <div className="h-[500px] flex flex-col items-center justify-center text-[#9aa0a6] space-y-4">
+                  <div className="p-4 bg-white/5 rounded-full animate-pulse">
+                    <Loader2 size={40} className="opacity-20 animate-spin" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium text-white/60">ログを収集中...</p>
+                    <p className="text-xs opacity-50 mt-1">コンテナの出力を待機しています。</p>
+                  </div>
                 </div>
               ) : (
-                <>
+                <div className="space-y-0.5">
                   {execLogs.map((entry, i) => (
-                    <div key={i} className="py-1 border-b border-white/5 last:border-0 group">
-                      <div className="flex items-center space-x-2 text-[10px] text-[#5f6368] mb-0.5">
-                        <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">{entry.pod_name.split('-').pop()}</span>
-                        <span>{new Date(entry.timestamp).toLocaleString()}</span>
-                      </div>
-                      <div className="group-hover:text-white transition-colors pl-2 border-l border-white/10">{entry.message}</div>
+                    <div key={i} className="flex group hover:bg-white/5 px-2 -mx-2 transition-colors">
+                      <span className="text-[#858585] w-12 shrink-0 select-none opacity-40 text-right pr-4 italic font-light">{(i+1)}</span>
+                      <span className="break-all whitespace-pre-wrap group-hover:text-white transition-colors">{entry.message || ' '}</span>
                     </div>
                   ))}
                   <div ref={execLogEndRef} />
-                </>
+                </div>
               )}
             </div>
           </div>
