@@ -189,16 +189,14 @@ const ProjectDetail: React.FC = () => {
           <span>コンテナ</span>
         </button>
         <button
-          onClick={() => setActiveTab('history')}
+          disabled
           className={cn(
-            "px-6 py-4 text-sm font-medium flex items-center space-x-2 transition-all border-b-2",
-            activeTab === 'history' 
-              ? "border-google-blue text-google-blue" 
-              : "border-transparent text-[#5f6368] hover:text-[#202124] hover:bg-gray-50"
+            "px-6 py-4 text-sm font-medium flex items-center space-x-2 transition-all border-b-2 opacity-40 cursor-not-allowed",
+            "border-transparent text-[#5f6368]"
           )}
         >
           <History size={18} />
-          <span>構成履歴・復元</span>
+          <span>構成履歴・復元 (Coming Soon)</span>
         </button>
       </div>
 

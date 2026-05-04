@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { 
   Terminal, 
-  History, 
   Globe, 
   GitBranch, 
   RotateCcw,
@@ -20,7 +19,9 @@ import {
   Database,
   Trash2,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Save,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -42,11 +43,14 @@ interface LogEntry {
 const ContainerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networking' | 'volumes' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networking' | 'volumes' | 'env-vars'>('overview');
   const [container, setContainer] = useState<any>(null);
   const [buildJobs, setBuildJobs] = useState<BuildJob[]>([]);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const [execLogs, setExecLogs] = useState<LogEntry[]>([]);
+  const [project, setProject] = useState<any>(null);
+  const [envVars, setEnvVars] = useState<{key: string, value: string}[]>([]);
+  const [isSavingEnv, setIsSavingEnv] = useState(false);
   const [customDomain, setCustomDomain] = useState('');
   const [customDomainEnabled, setCustomDomainEnabled] = useState(true);
   const [streamingBuild, setStreamingBuild] = useState(false);
@@ -71,8 +75,44 @@ const ContainerDetail: React.FC = () => {
         setCustomDomain(data.ingress.custom_domain || '');
         setCustomDomainEnabled(data.ingress.custom_domain_enabled);
       }
+      
+      // Fetch project to get project-level env vars
+      const projRes = await api.get(`/app/v1/projects/${data.project_id}`);
+      const projData = projRes.data.data;
+      setProject(projData);
+      
+      // Parse env vars
+      try {
+        const vars = JSON.parse(projData.env_vars || '{}');
+        setEnvVars(Object.entries(vars).map(([key, value]) => ({ key, value: String(value) })));
+      } catch (e) {
+        setEnvVars([]);
+      }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleSaveEnvVars = async () => {
+    if (!project) return;
+    setIsSavingEnv(true);
+    try {
+      const envObj = envVars.reduce((acc, { key, value }) => {
+        if (key.trim()) acc[key.trim()] = value;
+        return acc;
+      }, {} as any);
+
+      await api.patch(`/app/v1/projects/${project.id}/env-vars`, {
+        env_vars: JSON.stringify(envObj)
+      });
+      
+      alert('環境変数を保存しました。再ビルドまたは再デプロイで反映されます。');
+      fetchContainer();
+    } catch (err) {
+      console.error(err);
+      alert('環境変数の保存に失敗しました。');
+    } finally {
+      setIsSavingEnv(false);
     }
   };
 
@@ -342,7 +382,7 @@ const ContainerDetail: React.FC = () => {
     { id: 'exec-logs', label: '実行ログ', icon: FileText },
     { id: 'networking', label: 'ネットワーキング', icon: Globe },
     { id: 'volumes', label: 'ボリューム', icon: Database },
-    { id: 'history', label: '履歴・復元', icon: History },
+    { id: 'env-vars', label: '環境変数', icon: ShieldCheck },
   ];
 
   return (
@@ -397,9 +437,6 @@ const ContainerDetail: React.FC = () => {
             >
               <RefreshCw size={16} />
               <span>再ビルド</span>
-            </button>
-            <button className="px-6 py-2 bg-google-blue text-white text-sm font-medium rounded-md hover:shadow-md transition-all">
-              設定
             </button>
           </div>
         </div>
@@ -1151,22 +1188,88 @@ const ContainerDetail: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'history' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center px-2">
-              <h3 className="text-lg font-medium text-[#202124]">プロジェクト構成スナップショット</h3>
-            </div>
-            <div className="p-10 text-center google-card space-y-4">
-              <History size={48} className="mx-auto text-gray-300" />
-              <p className="text-sm text-[#5f6368]">
-                このプロジェクトの履歴管理はプロジェクト詳細ページから一括で行われます。
-              </p>
-              <Link 
-                to={`/projects/${container?.project_id}`}
-                className="inline-block text-google-blue text-sm font-medium hover:underline"
+        {activeTab === 'env-vars' && (
+          <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center space-x-4">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-medium text-[#202124]">プロジェクト環境変数</h3>
+                  <p className="text-sm text-[#5f6368] mt-1">このプロジェクト内のすべてのコンテナで共有される環境変数です。</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEnvVars([...envVars, { key: '', value: '' }])}
+                className="flex items-center space-x-2 px-4 py-2 border border-[#dadce0] bg-white rounded-md text-sm font-medium text-[#3c4043] hover:bg-gray-50 transition-all"
               >
-                プロジェクト詳細へ移動
-              </Link>
+                <Plus size={16} />
+                <span>変数を追加</span>
+              </button>
+            </div>
+
+            <div className="google-card p-8 space-y-6">
+              {envVars.length === 0 ? (
+                <div className="py-12 text-center space-y-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <ShieldCheck size={48} className="mx-auto text-gray-200" />
+                  <p className="text-sm text-[#5f6368]">環境変数が設定されていません。</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {envVars.map((env, idx) => (
+                    <div key={idx} className="flex items-center space-x-4 animate-in slide-in-from-left-2 duration-200">
+                      <div className="flex-1">
+                        <input 
+                          type="text" 
+                          value={env.key}
+                          onChange={(e) => {
+                            const newVars = [...envVars];
+                            newVars[idx].key = e.target.value;
+                            setEnvVars(newVars);
+                          }}
+                          placeholder="変数名 (例: API_KEY)"
+                          className="google-input font-mono text-sm"
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <input 
+                          type="text" 
+                          value={env.value}
+                          onChange={(e) => {
+                            const newVars = [...envVars];
+                            newVars[idx].value = e.target.value;
+                            setEnvVars(newVars);
+                          }}
+                          placeholder="値"
+                          className="google-input font-mono text-sm"
+                        />
+                      </div>
+                      <button 
+                        onClick={() => setEnvVars(envVars.filter((_, i) => i !== idx))}
+                        className="p-2 text-gray-400 hover:text-google-red transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-6 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-[#5f6368]">
+                  <Info size={16} />
+                  <span className="text-xs">保存後、変更を反映するには「再ビルド」または「再デプロイ」を実行してください。</span>
+                </div>
+                <button 
+                  onClick={handleSaveEnvVars}
+                  disabled={isSavingEnv}
+                  className="flex items-center space-x-2 px-8 py-2.5 bg-google-blue text-white rounded-md hover:shadow-lg font-medium transition-all disabled:opacity-50"
+                >
+                  {isSavingEnv ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                  <span>{isSavingEnv ? '保存中...' : '変更を保存'}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

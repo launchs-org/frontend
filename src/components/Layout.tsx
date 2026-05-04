@@ -26,9 +26,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuItems = [
     { name: 'ダッシュボード', icon: LayoutDashboard, path: '/' },
     { name: 'プロジェクト', icon: Box, path: '/projects' },
-    { name: '履歴・ロールバック', icon: History, path: '/history' },
-    { name: 'モニタリング', icon: Activity, path: '/monitoring' },
-    { name: '設定', icon: Settings, path: '/settings' },
+    { name: '履歴・ロールバック', icon: History, path: '/history', disabled: true },
+    { name: 'モニタリング', icon: Activity, path: '/monitoring', disabled: true },
+    { name: '設定', icon: Settings, path: '/settings', disabled: true },
   ];
 
   return (
@@ -49,19 +49,28 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         <nav className="flex-1 pr-4 space-y-1">
           {menuItems.map((item) => (
-            <Link
+            <div
               key={item.name}
-              to={item.path}
               className={cn(
-                "flex items-center space-x-4 py-3 pl-6 transition-colors text-sm font-medium",
-                location.pathname === item.path 
+                "flex items-center justify-between py-3 pl-6 pr-2 transition-colors text-sm font-medium relative group",
+                location.pathname === item.path && !item.disabled
                   ? "sidebar-item-active" 
-                  : "text-[#5f6368] hover:bg-gray-100 rounded-r-full"
+                  : "text-[#5f6368] hover:bg-gray-100 rounded-r-full",
+                item.disabled && "opacity-50 cursor-not-allowed"
               )}
             >
-              <item.icon size={20} className={location.pathname === item.path ? "text-[#1a73e8]" : "text-gray-500"} />
-              <span>{item.name}</span>
-            </Link>
+              <div className="flex items-center space-x-4">
+                <item.icon size={20} className={(location.pathname === item.path && !item.disabled) ? "text-[#1a73e8]" : "text-gray-500"} />
+                {!item.disabled ? (
+                  <Link to={item.path} className="stretched-link">{item.name}</Link>
+                ) : (
+                  <span>{item.name}</span>
+                )}
+              </div>
+              {item.disabled && (
+                <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">Soon</span>
+              )}
+            </div>
           ))}
         </nav>
 
@@ -89,7 +98,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
               <HelpCircle size={22} />
             </button>
-            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-not-allowed opacity-50">
               <Settings size={22} />
             </button>
             <div className="h-8 w-8 bg-[#1a73e8] text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm cursor-pointer">
