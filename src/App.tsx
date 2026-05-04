@@ -43,34 +43,34 @@ const App: React.FC = () => {
 
   if (isVerifying) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-4 font-sans">
-        <Loader2 className="w-8 h-8 text-[#0ea5e9] animate-spin mb-4" />
-        <p className="text-[#cbd5e1] font-medium">認証中...</p>
+      <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center justify-center p-4 font-sans">
+        <Loader2 className="w-8 h-8 text-[#1a73e8] animate-spin mb-4" />
+        <p className="text-[#5f6368] font-medium">認証状態を確認中...</p>
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 font-sans">
         <div className="card p-12 text-center w-full max-w-md">
-          <div className="w-16 h-16 bg-[#0ea5e9]/10 text-[#0ea5e9] rounded-lg flex items-center justify-center mx-auto mb-8">
+          <div className="w-16 h-16 bg-blue-50 text-[#1a73e8] rounded-full flex items-center justify-center mx-auto mb-8">
             <User size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-[#f1f5f9] mb-4">認証が必要です</h1>
-          <p className="text-[#94a3b8] mb-8 leading-relaxed">
-            Launchs を使用するには AuthBase での認証が必要です。
+          <h1 className="text-2xl font-medium text-[#202124] mb-4">ログインが必要です</h1>
+          <p className="text-[#5f6368] mb-8 leading-relaxed">
+            Launchs を管理するには、AuthBase での認証が必要です。下のボタンからログインページへ進んでください。
           </p>
           
           <a 
             href="/auth/login" 
-            className="inline-block w-full bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold py-3 px-6 rounded-lg transition-all"
+            className="inline-block w-full bg-[#1a73e8] hover:bg-[#1765cc] text-white font-medium py-3 px-6 rounded-md transition-all shadow-sm hover:shadow-md"
           >
-            ログイン
+            ログイン画面へ移動
           </a>
           
-          <p className="mt-6 text-xs text-[#475569]">
-            ログイン後に自動的にダッシュボードへ移動します
+          <p className="mt-6 text-xs text-gray-400">
+            ログイン後、このページに戻ってきてください。
           </p>
         </div>
       </div>

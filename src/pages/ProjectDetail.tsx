@@ -4,13 +4,12 @@ import { api } from '../lib/api';
 import { 
   Database,
   Plus,
-  RotateCcw,
   GitBranch,
   ArrowLeft,
   X,
   Loader2,
   FolderOpen,
-  History,
+  Network,
   ChevronRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -36,8 +35,7 @@ const ProjectDetail: React.FC = () => {
   const location = useLocation();
   const [project, setProject] = useState<Project | null>(null);
   const [containers, setContainers] = useState<Container[]>([]);
-  const [activeTab, setActiveTab] = useState<'containers' | 'history'>('containers');
-  const [histories, setHistories] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'list' | 'graph'>('list');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -56,14 +54,10 @@ const ProjectDetail: React.FC = () => {
   const fetchData = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const [projRes, histRes] = await Promise.all([
-        api.get(`/app/v1/projects/${id}`),
-        api.get(`/app/v1/projects/${id}/histories`)
-      ]);
+      const projRes = await api.get(`/app/v1/projects/${id}`);
 
       setProject(projRes.data.data);
       setContainers(projRes.data.data.containers || []);
-      setHistories(histRes.data.data.items || []);
     } catch (error) {
       console.error('Failed to fetch project data:', error);
     } finally {
@@ -90,18 +84,6 @@ const ProjectDetail: React.FC = () => {
       if (interval) clearInterval(interval);
     };
   }, [containers]);
-
-  const handleRollback = async (historyId: string) => {
-    if (!confirm('このスナップショットの状態にロールバックしますか？')) return;
-    try {
-      await api.post(`/app/v1/projects/${id}/rollback/${historyId}`);
-      alert('ロールバックを開始しました。');
-      fetchData();
-    } catch (error) {
-      console.error('Rollback failed:', error);
-      alert('ロールバックに失敗しました。');
-    }
-  };
 
   const handleCreateContainer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +119,7 @@ const ProjectDetail: React.FC = () => {
 
   if (loading && !project) return (
     <div className="flex flex-col items-center justify-center h-64 space-y-4">
-      <Loader2 className="w-8 h-8 text-google-blue animate-spin" />
+      <Loader2 className="w-8 h-8 text-[#1a73e8] animate-spin" />
     </div>
   );
 
@@ -145,16 +127,16 @@ const ProjectDetail: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col space-y-4">
-        <Link to="/projects" className="flex items-center space-x-2 text-sm text-[#5f6368] hover:text-google-blue transition-colors w-fit">
+        <Link to="/projects" className="flex items-center space-x-2 text-sm text-[#5f6368] hover:text-[#1a73e8] transition-colors w-fit">
           <ArrowLeft size={16} />
           <span>プロジェクト一覧へ戻る</span>
         </Link>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-[#dadce0]">
-          <div className="space-y-1">
+          <div className="space-y-2">
             <h2 className="text-3xl font-normal text-[#202124]">{project?.name}</h2>
             <div className="flex items-center space-x-4 text-sm text-[#5f6368]">
               <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-google-green rounded-full" />
+                <div className="w-2 h-2 bg-[#1e8e3e] rounded-full" />
                 <span className="font-medium">ネームスペース: {project?.namespace}</span>
               </div>
               <span>•</span>
@@ -165,7 +147,7 @@ const ProjectDetail: React.FC = () => {
           <div className="flex items-center space-x-3">
             <button 
               onClick={() => setShowModal(true)}
-              className="flex items-center space-x-2 px-6 py-2 bg-google-blue text-white text-sm font-medium rounded-md hover:shadow-md transition-all"
+              className="flex items-center space-x-2 px-6 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-md hover:shadow-md transition-all"
             >
               <Plus size={18} />
               <span>コンテナを追加</span>
@@ -177,109 +159,138 @@ const ProjectDetail: React.FC = () => {
       {/* Tabs */}
       <div className="flex border-b border-[#dadce0] -mx-8 px-8">
         <button
-          onClick={() => setActiveTab('containers')}
+          onClick={() => setActiveTab('list')}
           className={cn(
             "px-6 py-4 text-sm font-medium flex items-center space-x-2 transition-all border-b-2",
-            activeTab === 'containers' 
-              ? "border-google-blue text-google-blue" 
-              : "border-transparent text-[#5f6368] hover:text-[#202124] hover:bg-gray-50"
+            activeTab === 'list' 
+              ? "border-[#1a73e8] text-[#1a73e8]" 
+              : "border-transparent text-[#5f6368] hover:text-[#202124] hover:bg-[#f8f9fa]"
           )}
         >
           <FolderOpen size={18} />
-          <span>コンテナ</span>
+          <span>リスト</span>
         </button>
         <button
-          disabled
+          onClick={() => setActiveTab('graph')}
           className={cn(
-            "px-6 py-4 text-sm font-medium flex items-center space-x-2 transition-all border-b-2 opacity-40 cursor-not-allowed",
-            "border-transparent text-[#5f6368]"
+            "px-6 py-4 text-sm font-medium flex items-center space-x-2 transition-all border-b-2",
+            activeTab === 'graph' 
+              ? "border-[#1a73e8] text-[#1a73e8]" 
+              : "border-transparent text-[#5f6368] hover:text-[#202124] hover:bg-[#f8f9fa]"
           )}
         >
-          <History size={18} />
-          <span>構成履歴・復元 (Coming Soon)</span>
+          <Network size={18} />
+          <span>グラフ</span>
         </button>
       </div>
 
       {/* Tab Content */}
       <div className="py-2">
-        {activeTab === 'containers' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {containers.map((container) => (
-              <Link 
-                key={container.id} 
-                to={`/containers/${container.id}`}
-                className="google-card p-6 hover:shadow-lg transition-all group border-transparent hover:border-google-blue/20"
-              >
-                <div className="flex justify-between items-start mb-6">
-                  <div className="p-3 bg-blue-50 text-google-blue rounded-xl group-hover:bg-google-blue group-hover:text-white transition-colors">
-                    <Database size={24} />
-                  </div>
-                  <div className={cn(
-                    "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                    container.status === 'Running' ? "bg-green-100 text-green-700" : "bg-gray-100 text-[#5f6368]"
-                  )}>
-                    {container.status}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-lg font-medium text-[#202124] group-hover:text-google-blue transition-colors">{container.name}</h4>
-                    <p className="text-xs text-[#5f6368] mt-1 font-mono truncate">{container.repository_url}</p>
-                  </div>
-                  <div className="flex items-center justify-between pt-4 border-t border-[#f1f3f4]">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-1 text-[#5f6368]">
-                        <GitBranch size={14} />
-                        <span className="text-xs font-medium">{container.branch}</span>
-                      </div>
-                      <span className="text-gray-300">|</span>
-                      <div className="flex items-center space-x-1 text-[#5f6368]">
-                        <RotateCcw size={14} />
-                        <span className="text-xs font-medium">{container.replicas}</span>
-                      </div>
-                    </div>
-                    <ChevronRight size={18} className="text-gray-300 group-hover:text-google-blue transition-all" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-            {containers.length === 0 && (
-              <div className="col-span-full py-20 text-center google-card border-dashed">
-                <Database size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-[#5f6368]">コンテナがまだありません。新しいコンテナを追加してください。</p>
-              </div>
-            )}
+        {activeTab === 'list' ? (
+          <div className="card overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead className="table-header">
+                <tr>
+                  <th className="px-6 py-4 font-medium text-[#5f6368]">コンテナ名</th>
+                  <th className="px-6 py-4 font-medium text-[#5f6368]">リポジトリ</th>
+                  <th className="px-6 py-4 font-medium text-[#5f6368]">ブランチ</th>
+                  <th className="px-6 py-4 font-medium text-[#5f6368]">ステータス</th>
+                  <th className="px-6 py-4 font-medium text-[#5f6368]">レプリカ</th>
+                  <th className="px-6 py-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {containers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-[#5f6368]">
+                      コンテナがまだありません。
+                    </td>
+                  </tr>
+                ) : (
+                  containers.map((container) => (
+                    <tr key={container.id} className="table-row hover:bg-[#f8f9fa] group">
+                      <td className="px-6 py-4">
+                        <Link 
+                          to={`/containers/${container.id}`}
+                          className="font-medium text-[#1a73e8] hover:underline"
+                        >
+                          {container.name}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-[#5f6368] font-mono truncate max-w-[200px]">
+                        {container.repository_url}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-1 text-[#5f6368]">
+                          <GitBranch size={14} />
+                          <span className="text-xs">{container.branch}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={cn(
+                          "px-2 py-1 rounded text-xs font-medium inline-flex items-center space-x-1",
+                          container.status === 'Running' ? "bg-[#e6f4ea] text-[#1e8e3e]" : "bg-[#f3f3f3] text-[#5f6368]"
+                        )}>
+                          <div className={cn(
+                            "w-2 h-2 rounded-full",
+                            container.status === 'Running' ? "bg-[#1e8e3e]" : "bg-[#dadce0]"
+                          )} />
+                          <span>{container.status}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[#5f6368]">{container.replicas}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link 
+                          to={`/containers/${container.id}`}
+                          className="p-2 hover:bg-[#e8f0fe] rounded text-[#1a73e8] transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <ChevronRight size={18} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <div className="space-y-4">
-            {histories.map((history) => (
-              <div key={history.id} className="google-card p-5 flex items-center justify-between group hover:border-google-blue transition-all">
-                <div className="flex items-center space-x-6">
-                  <div className="p-2.5 bg-gray-50 text-gray-400 group-hover:bg-blue-50 group-hover:text-google-blue rounded-lg transition-all">
-                    <History size={20} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-[#202124]">構成スナップショット: {history.version_name}</p>
-                    <p className="text-[11px] text-[#5f6368] mt-0.5">
-                      保存日: {new Date(history.created_at).toLocaleString('ja-JP')}
-                    </p>
+          <div className="card p-8 bg-[#f8f9fa]">
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <Network size={48} className="text-[#dadce0]" />
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-[#202124] mb-2">グラフビュー</h3>
+                <p className="text-sm text-[#5f6368]">
+                  {containers.length > 0 
+                    ? `${containers.length} 個のコンテナの依存関係を表示します`
+                    : 'グラフを表示するにはコンテナを追加してください'}
+                </p>
+              </div>
+              {containers.length > 0 && (
+                <div className="mt-6 w-full bg-white rounded-lg p-6 border border-[#dadce0]">
+                  <div className="flex flex-wrap gap-4">
+                    {containers.map((container, idx) => (
+                      <div 
+                        key={container.id}
+                        className="flex items-center space-x-2"
+                      >
+                        <div className="p-3 bg-[#e8f0fe] text-[#1a73e8] rounded-lg">
+                          <Database size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-[#202124]">{container.name}</p>
+                          <p className="text-xs text-[#5f6368]">{container.branch}</p>
+                        </div>
+                        {idx < containers.length - 1 && (
+                          <ChevronRight size={20} className="text-[#dadce0] mx-2" />
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <button 
-                  onClick={() => handleRollback(history.id)}
-                  className="px-4 py-1.5 border border-[#dadce0] rounded text-xs font-medium text-[#202124] hover:bg-gray-50 hover:border-[#bdc1c6] transition-all flex items-center space-x-1"
-                >
-                  <RotateCcw size={14} />
-                  <span>この時点に復元</span>
-                </button>
-              </div>
-            ))}
-            {histories.length === 0 && (
-              <div className="py-20 text-center google-card border-dashed">
-                <History size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-[#5f6368]">履歴がまだありません。構成を変更すると自動的に保存されます。</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -288,9 +299,9 @@ const ProjectDetail: React.FC = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg animate-in zoom-in duration-300 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <div className="px-6 py-4 border-b border-[#dadce0] flex justify-between items-center bg-[#f8f9fa]">
               <h3 className="text-lg font-medium text-[#202124]">コンテナを新規追加</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={() => setShowModal(false)} className="text-[#5f6368] hover:text-[#202124] transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -304,7 +315,7 @@ const ProjectDetail: React.FC = () => {
                   onChange={handleInputChange}
                   required
                   placeholder="例: frontend-api"
-                  className="google-input" 
+                  className="input" 
                 />
                 <p className="text-[10px] text-[#5f6368]">一意の名称を指定してください。</p>
               </div>
@@ -318,7 +329,7 @@ const ProjectDetail: React.FC = () => {
                   onChange={handleInputChange}
                   required
                   placeholder="https://github.com/username/repository"
-                  className="google-input" 
+                  className="input" 
                 />
               </div>
 
@@ -330,7 +341,7 @@ const ProjectDetail: React.FC = () => {
                   value={formData.branch}
                   onChange={handleInputChange}
                   placeholder="main"
-                  className="google-input" 
+                  className="input" 
                 />
               </div>
 
@@ -342,10 +353,9 @@ const ProjectDetail: React.FC = () => {
                   value={formData.directory}
                   onChange={handleInputChange}
                   placeholder="/"
-                  className="google-input" 
+                  className="input" 
                 />
               </div>
-
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[#202124]">レプリカ数</label>
@@ -356,7 +366,7 @@ const ProjectDetail: React.FC = () => {
                   onChange={handleInputChange}
                   min="1"
                   max="10"
-                  className="google-input" 
+                  className="input" 
                 />
               </div>
 
@@ -364,14 +374,14 @@ const ProjectDetail: React.FC = () => {
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors"
+                  className="flex-1 px-4 py-2 border border-[#dadce0] text-[#3c4043] rounded-md hover:bg-[#f1f3f4] font-medium transition-colors"
                 >
                   キャンセル
                 </button>
                 <button 
                   type="submit" 
                   disabled={creating}
-                  className="flex-1 px-4 py-2 bg-google-blue text-white rounded-md hover:shadow-lg font-medium transition-all flex items-center justify-center space-x-2"
+                  className="flex-1 px-4 py-2 bg-[#1a73e8] text-white rounded-md hover:shadow-lg font-medium transition-all flex items-center justify-center space-x-2"
                 >
                   {creating ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                   <span>{creating ? '作成中...' : '作成する'}</span>

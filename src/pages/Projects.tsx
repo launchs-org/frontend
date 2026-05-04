@@ -6,7 +6,7 @@ import {
   X,
   Loader2,
   Trash2,
-  ArrowRight
+  ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -90,92 +90,114 @@ const Projects: React.FC = () => {
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#f1f5f9]">プロジェクト</h2>
-          <p className="text-sm text-[#94a3b8] mt-2">デプロイ環境とサービスグループを管理</p>
+          <h2 className="text-2xl font-normal text-[#202124]">プロジェクト</h2>
+          <p className="text-sm text-[#5f6368] mt-1">デプロイ環境とサービスグループを管理します。</p>
         </div>
         
         <button 
           onClick={() => setShowModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-[#0ea5e9] text-white text-sm font-medium rounded-lg hover:bg-[#0284c7] transition-all active:scale-95"
+          className="flex items-center space-x-2 px-6 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-md hover:shadow-lg transition-all active:scale-95"
         >
           <Plus size={18} />
           <span>新規プロジェクト</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
-          [1, 2, 3].map((i) => (
-            <div key={i} className="card p-6 h-48 animate-pulse bg-[#1e293b]" />
-          ))
-        ) : projects.length === 0 ? (
-          <div className="col-span-full py-20 text-center card border-dashed">
-            <Folder size={48} className="mx-auto text-[#475569] mb-4" />
-            <p className="text-[#94a3b8]">プロジェクトがまだありません。新しいプロジェクトを作成してください。</p>
+      {loading ? (
+        <div className="card p-6">
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-[#f1f3f4] animate-pulse rounded" />
+            ))}
           </div>
-        ) : (
-          projects.map((project) => (
-            <Link 
-              key={project.id} 
-              to={`/projects/${project.id}`}
-              className="card p-6 hover:border-[#0ea5e9] transition-all group hover:shadow-lg relative"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="p-3 bg-[#0ea5e9]/10 text-[#0ea5e9] rounded-lg group-hover:bg-[#0ea5e9] group-hover:text-white transition-colors">
-                  <Folder size={24} />
-                </div>
-                <div className="relative">
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setOpenMenuId(openMenuId === project.id ? null : project.id);
-                    }}
-                    className="p-2 text-[#94a3b8] hover:bg-[#334155] rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                  {openMenuId === project.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-[#1e293b] rounded-lg shadow-xl border border-[#334155] z-10 py-1 animate-in fade-in zoom-in duration-200">
-                      <button
-                        onClick={(e) => handleDeleteProject(e, project.id, project.name)}
-                        className="w-full text-left px-4 py-2 text-sm text-[#ef4444] hover:bg-[#ef4444]/10 flex items-center space-x-2 transition-colors"
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="card py-20 text-center">
+          <Folder size={48} className="mx-auto text-[#dadce0] mb-4" />
+          <p className="text-[#5f6368]">プロジェクトがまだありません。新しいプロジェクトを作成してください。</p>
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="table-header">
+              <tr>
+                <th className="px-6 py-4 font-medium text-[#5f6368]">プロジェクト名</th>
+                <th className="px-6 py-4 font-medium text-[#5f6368]">ネームスペース</th>
+                <th className="px-6 py-4 font-medium text-[#5f6368]">リソース名</th>
+                <th className="px-6 py-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <tr key={project.id} className="table-row hover:bg-[#f8f9fa] group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center space-x-3">
+                      <Folder size={18} className="text-[#1a73e8]" />
+                      <Link 
+                        to={`/projects/${project.id}`}
+                        className="font-medium text-[#1a73e8] hover:underline"
                       >
-                        <Trash2 size={16} />
-                        <span>削除</span>
-                      </button>
+                        {project.name}
+                      </Link>
                     </div>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-[#f1f5f9] group-hover:text-[#0ea5e9] transition-colors">{project.name}</h3>
-                  <p className="text-xs text-[#94a3b8] mt-1">ns: {project.namespace}</p>
-                </div>
-                <div className="pt-4 border-t border-[#334155] flex items-center justify-between">
-                  <code className="text-[10px] text-[#0ea5e9] font-mono">{project.k8s_resource_name}</code>
-                  <ArrowRight size={16} className="text-[#475569] group-hover:text-[#0ea5e9] transition-all" />
-                </div>
-              </div>
-            </Link>
-          ))
-        )}
-      </div>
+                  </td>
+                  <td className="px-6 py-4 text-[#5f6368]">{project.namespace}</td>
+                  <td className="px-6 py-4">
+                    <code className="bg-[#f1f3f4] px-2 py-1 rounded text-xs text-[#3c4043] font-mono">
+                      {project.k8s_resource_name}
+                    </code>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link 
+                        to={`/projects/${project.id}`}
+                        className="p-2 hover:bg-[#e8f0fe] rounded text-[#1a73e8] transition-colors"
+                      >
+                        <ChevronRight size={18} />
+                      </Link>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === project.id ? null : project.id);
+                        }}
+                        className="p-2 hover:bg-[#f1f3f4] rounded text-[#5f6368] transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                      {openMenuId === project.id && (
+                        <div className="absolute right-8 mt-10 w-48 bg-white rounded-md shadow-xl border border-[#dadce0] z-10 py-1 animate-in fade-in zoom-in duration-200">
+                          <button
+                            onClick={(e) => handleDeleteProject(e, project.id, project.name)}
+                            className="w-full text-left px-4 py-2 text-sm text-[#d93025] hover:bg-[#fce8e6] flex items-center space-x-2 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                            <span>削除</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* New Project Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="card rounded-lg w-full max-w-md animate-in zoom-in duration-300 overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#334155] flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-[#f1f5f9]">プロジェクトを作成</h3>
-              <button onClick={() => setShowModal(false)} className="text-[#94a3b8] hover:text-[#f1f5f9] transition-colors">
+          <div className="card rounded-xl w-full max-w-md animate-in zoom-in duration-300 overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#dadce0] flex justify-between items-center bg-[#f8f9fa]">
+              <h3 className="text-lg font-medium text-[#202124]">プロジェクトを新規作成</h3>
+              <button onClick={() => setShowModal(false)} className="text-[#5f6368] hover:text-[#202124] transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleCreateProject} className="p-6 space-y-5">
+            <form onSubmit={handleCreateProject} className="p-6 space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#cbd5e1] uppercase tracking-wide">プロジェクト名</label>
+                <label className="text-xs font-bold text-[#5f6368] uppercase tracking-wider">プロジェクト名</label>
                 <input 
                   type="text" 
                   name="name"
@@ -183,26 +205,26 @@ const Projects: React.FC = () => {
                   onChange={handleInputChange}
                   required
                   pattern="^[a-z0-9-]+$"
-                  placeholder="英小文字、数字、ハイフン"
+                  placeholder="英小文字、数字、ハイフンのみ"
                   className="input"
                 />
-                <p className="text-[10px] text-[#94a3b8]">
-                  Kubernetes のネームスペース名として使用されます
+                <p className="text-[10px] text-[#5f6368]">
+                  ※ プロジェクト名は Kubernetes のネームスペース名としても使用されます。
                 </p>
               </div>
 
-              <div className="flex space-x-3 pt-2">
+              <div className="pt-2 flex space-x-3">
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 border border-[#334155] text-[#cbd5e1] rounded-lg hover:bg-[#334155] font-medium transition-colors text-sm"
+                  className="flex-1 px-4 py-2.5 border border-[#dadce0] text-[#3c4043] rounded-md hover:bg-[#f1f3f4] font-medium transition-colors text-sm"
                 >
                   キャンセル
                 </button>
                 <button 
                   type="submit" 
                   disabled={creating}
-                  className="flex-1 px-4 py-2.5 bg-[#0ea5e9] text-white rounded-lg hover:bg-[#0284c7] font-medium transition-all flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-[#1a73e8] text-white rounded-md hover:shadow-lg font-medium transition-all flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
                 >
                   {creating ? (
                     <>
@@ -210,7 +232,7 @@ const Projects: React.FC = () => {
                       <span>作成中...</span>
                     </>
                   ) : (
-                    <span>作成</span>
+                    <span>プロジェクトを作成</span>
                   )}
                 </button>
               </div>
