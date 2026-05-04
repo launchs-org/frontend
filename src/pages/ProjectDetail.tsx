@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import { 
   Database,
@@ -33,6 +33,7 @@ interface Project {
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [project, setProject] = useState<Project | null>(null);
   const [containers, setContainers] = useState<Container[]>([]);
   const [activeTab, setActiveTab] = useState<'containers' | 'history'>('containers');
@@ -72,7 +73,7 @@ const ProjectDetail: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [id]);
+  }, [id, location]);
 
   const handleRollback = async (historyId: string) => {
     if (!confirm('このスナップショットの状態にロールバックしますか？')) return;

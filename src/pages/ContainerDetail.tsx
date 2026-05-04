@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { 
   Terminal, 
@@ -37,6 +37,7 @@ interface LogEntry {
 
 const ContainerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networking' | 'history'>('overview');
   const [container, setContainer] = useState<any>(null);
   const [buildJobs, setBuildJobs] = useState<BuildJob[]>([]);
@@ -259,6 +260,18 @@ const ContainerDetail: React.FC = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm('本当にこのコンテナを削除しますか？関連するリソースもすべて削除されます。')) return;
+    try {
+      await api.delete(`/app/v1/containers/${id}`);
+      alert('コンテナを削除しました');
+      navigate(`/projects/${container.project_id}`);
+    } catch (err) {
+      console.error(err);
+      alert('コンテナの削除に失敗しました。');
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: '概要', icon: Zap },
     { id: 'builds', label: 'ビルド履歴', icon: RotateCcw },
@@ -300,6 +313,13 @@ const ContainerDetail: React.FC = () => {
           </div>
 
           <div className="flex space-x-2">
+            <button 
+              onClick={handleDelete}
+              className="px-4 py-2 border border-[#dadce0] bg-white rounded-md text-sm font-medium text-google-red hover:bg-red-50 flex items-center space-x-2"
+            >
+              <X size={16} />
+              <span>削除</span>
+            </button>
             <button 
               onClick={handleRedeploy}
               className="px-4 py-2 border border-[#dadce0] bg-white rounded-md text-sm font-medium text-[#3c4043] hover:bg-gray-50 flex items-center space-x-2"
