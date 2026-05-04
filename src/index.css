@@ -1,21 +1,24 @@
 @import "tailwindcss";
+@import "reactflow/dist/style.css";
 
 @theme {
-  --color-google-blue: #1a73e8;
-  --color-google-red: #d93025;
-  --color-google-yellow: #f9ab00;
-  --color-google-green: #1e8e3e;
-  --color-bg-gray: #f8f9fa;
-  --color-text-dark: #202124;
-  --color-text-medium: #5f6368;
-  --color-text-light: #80868b;
-  --color-border-light: #dadce0;
-  --font-sans: "Roboto", "Inter", system-ui, -apple-system, sans-serif;
+  --color-primary: #6366f1;
+  --color-primary-dark: #4f46e5;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-bg-primary: #1a1b2e;
+  --color-bg-secondary: #252742;
+  --color-bg-tertiary: #3a3d52;
+  --color-text-primary: #e5e7eb;
+  --color-text-secondary: #9ca3af;
+  --color-border: #404556;
+  --font-sans: "Inter", "Roboto", system-ui, -apple-system, sans-serif;
 }
 
 :root {
-  background-color: #f8f9fa;
-  color: #202124;
+  background-color: #1a1b2e;
+  color: #e5e7eb;
 }
 
 body {
@@ -24,7 +27,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Material Design style scrollbar */
+/* Railway style scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -35,93 +38,119 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #dadce0;
+  background: #404556;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bdc1c6;
+  background: #505668;
 }
 
 .card {
-  background: #ffffff;
-  border: 1px solid #dadce0;
-  border-radius: 8px;
-  transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  background: #252742;
+  border: 1px solid #404556;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
 }
 
 .card:hover {
-  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15);
-  border-color: #dadce0;
+  border-color: #505668;
+  background: #2a2d42;
 }
 
 .btn-primary {
-  background-color: #1a73e8;
+  background-color: #6366f1;
   color: white;
   padding: 8px 24px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
   border: none;
 }
 
 .btn-primary:hover {
-  background-color: #1765cc;
-  box-shadow: 0 1px 2px 0 rgba(66,133,244,0.30), 0 1px 3px 1px rgba(66,133,244,0.15);
+  background-color: #4f46e5;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
 .btn-secondary {
-  background-color: #f8f9fa;
-  color: #3c4043;
+  background-color: #3a3d52;
+  color: #e5e7eb;
   padding: 8px 24px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-weight: 500;
   transition: all 0.2s;
-  border: 1px solid #dadce0;
+  border: 1px solid #404556;
 }
 
 .btn-secondary:hover {
-  background-color: #f1f3f4;
-  border-color: #dadce0;
+  background-color: #404556;
+  border-color: #505668;
 }
 
 .sidebar-item-active {
-  background-color: #e8f0fe;
-  color: #1a73e8;
-  border-radius: 0 25px 25px 0;
+  background-color: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  border-left: 3px solid #6366f1;
 }
 
 .input {
   width: 100%;
   padding: 10px 12px;
-  background-color: #ffffff;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
+  background-color: #3a3d52;
+  border: 1px solid #404556;
+  border-radius: 8px;
   font-size: 14px;
   line-height: 20px;
-  color: #3c4043;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  color: #e5e7eb;
+  transition: all 0.2s;
 }
 
 .input:focus {
   outline: none;
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .input::placeholder {
-  color: #70757a;
+  color: #9ca3af;
 }
 
 .table-header {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dadce0;
+  background-color: #1a1b2e;
+  border-bottom: 1px solid #404556;
 }
 
 .table-row {
-  border-bottom: 1px solid #dadce0;
+  border-bottom: 1px solid #404556;
 }
 
 .table-row:hover {
-  background-color: #f8f9fa;
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+/* React Flow Railway style */
+.react-flow {
+  background: linear-gradient(135deg, #1a1b2e 0%, #252742 100%);
+}
+
+.react-flow__node {
+  background: #252742;
+  border: 1px solid #404556;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.react-flow__node.selected {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.react-flow__edge-path {
+  stroke: #404556;
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #6366f1;
 }

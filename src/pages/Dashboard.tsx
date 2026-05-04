@@ -51,9 +51,9 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const statCards = [
-    { name: 'プロジェクト', value: stats.active_projects.toString(), icon: Box, color: '#1a73e8' },
-    { name: 'コンテナ', value: stats.total_containers.toString(), icon: Layers, color: '#1e8e3e' },
-    { name: 'インスタンス', value: stats.running_instances.toString(), icon: Server, color: '#f9ab00' },
+    { name: 'プロジェクト', value: stats.active_projects.toString(), icon: Box, color: '#6366f1' },
+    { name: 'コンテナ', value: stats.total_containers.toString(), icon: Layers, color: '#10b981' },
+    { name: 'インスタンス', value: stats.running_instances.toString(), icon: Server, color: '#f59e0b' },
   ];
 
   return (
@@ -61,11 +61,11 @@ const Dashboard: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {statCards.map((stat) => (
-          <div key={stat.name} className="card p-6">
+          <div key={stat.name} className="card p-6 hover:bg-[#2a2d42]">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-[#5f6368]">{stat.name}</p>
-                <p className="text-3xl font-medium text-[#202124] mt-2">{stat.value}</p>
+                <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wide">{stat.name}</p>
+                <p className="text-3xl font-bold text-[#e5e7eb] mt-2">{stat.value}</p>
               </div>
               <div style={{ color: stat.color }}>
                 <stat.icon size={24} />
@@ -78,8 +78,8 @@ const Dashboard: React.FC = () => {
       <div className="space-y-4">
         {/* Recent Containers */}
         <div className="flex items-center justify-between px-2">
-          <h3 className="text-lg font-medium text-[#202124]">最近のコンテナ</h3>
-          <Link to="/projects" className="text-sm text-[#1a73e8] font-medium hover:underline flex items-center space-x-1">
+          <h3 className="text-lg font-semibold text-[#e5e7eb]">最近のコンテナ</h3>
+          <Link to="/projects" className="text-sm text-[#6366f1] font-medium hover:text-[#8b5cf6] flex items-center space-x-1 transition-colors">
             <span>プロジェクト一覧</span>
             <ArrowRight size={14} />
           </Link>
@@ -87,33 +87,33 @@ const Dashboard: React.FC = () => {
         
         {loading ? (
           <div className="card flex flex-col items-center justify-center py-20 space-y-4">
-            <Loader2 className="w-8 h-8 text-[#1a73e8] animate-spin" />
-            <p className="text-sm text-[#5f6368]">データを読み込み中...</p>
+            <Loader2 className="w-8 h-8 text-[#6366f1] animate-spin" />
+            <p className="text-sm text-[#9ca3af]">データを読み込み中...</p>
           </div>
         ) : containers.length === 0 ? (
           <div className="card flex flex-col items-center justify-center py-20 space-y-4">
-            <Server size={32} className="text-[#dadce0]" />
-            <p className="text-sm text-[#5f6368]">デプロイされたコンテナはありません</p>
+            <Server size={32} className="text-[#404556]" />
+            <p className="text-sm text-[#9ca3af]">デプロイされたコンテナはありません</p>
           </div>
         ) : (
           <div className="card overflow-hidden">
             <table className="w-full text-left text-sm">
               <thead className="table-header">
                 <tr>
-                  <th className="px-6 py-4 font-medium text-[#5f6368]">コンテナ名</th>
-                  <th className="px-6 py-4 font-medium text-[#5f6368]">ステータス</th>
-                  <th className="px-6 py-4 font-medium text-[#5f6368]">バージョン</th>
+                  <th className="px-6 py-4 font-medium text-[#9ca3af]">コンテナ名</th>
+                  <th className="px-6 py-4 font-medium text-[#9ca3af]">ステータス</th>
+                  <th className="px-6 py-4 font-medium text-[#9ca3af]">バージョン</th>
                 </tr>
               </thead>
               <tbody>
                 {containers.slice(0, 5).map((container) => (
-                  <tr key={container.id} className="table-row hover:bg-[#f8f9fa]">
+                  <tr key={container.id} className="table-row">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
-                        <Server size={18} className="text-[#1a73e8]" />
+                        <Server size={18} className="text-[#6366f1]" />
                         <div>
-                          <p className="font-medium text-[#202124]">{container.name}</p>
-                          <p className="text-xs text-[#5f6368] truncate max-w-[300px]">{container.repository_url}</p>
+                          <p className="font-medium text-[#e5e7eb]">{container.name}</p>
+                          <p className="text-xs text-[#9ca3af] truncate max-w-[300px]">{container.repository_url}</p>
                         </div>
                       </div>
                     </td>
@@ -121,19 +121,19 @@ const Dashboard: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         {container.status === 'Running' ? (
                           <>
-                            <div className="w-2 h-2 rounded-full bg-[#1e8e3e]"></div>
-                            <span className="text-[#202124]">稼働中</span>
+                            <div className="w-2 h-2 rounded-full bg-[#10b981]"></div>
+                            <span className="text-[#e5e7eb]">稼働中</span>
                           </>
                         ) : (
                           <>
-                            <div className="w-2 h-2 rounded-full bg-[#f9ab00]"></div>
-                            <span className="text-[#202124]">{container.status}</span>
+                            <div className="w-2 h-2 rounded-full bg-[#f59e0b]"></div>
+                            <span className="text-[#e5e7eb]">{container.status}</span>
                           </>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <code className="bg-[#f8f9fa] px-2 py-1 rounded text-xs text-[#3c4043] font-mono">
+                      <code className="bg-[#1a1b2e] px-2 py-1 rounded text-xs text-[#6366f1] font-mono">
                         {container.version ? container.version.slice(0, 8) : '---'}
                       </code>
                     </td>

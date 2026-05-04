@@ -43,33 +43,33 @@ const App: React.FC = () => {
 
   if (isVerifying) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center justify-center p-4 font-sans">
-        <Loader2 className="w-8 h-8 text-[#1a73e8] animate-spin mb-4" />
-        <p className="text-[#5f6368] font-medium">認証状態を確認中...</p>
+      <div className="min-h-screen bg-[#1a1b2e] flex flex-col items-center justify-center p-4 font-sans">
+        <Loader2 className="w-8 h-8 text-[#6366f1] animate-spin mb-4" />
+        <p className="text-[#9ca3af] font-medium">認証状態を確認中...</p>
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 font-sans">
-        <div className="card p-12 text-center w-full max-w-md">
-          <div className="w-16 h-16 bg-blue-50 text-[#1a73e8] rounded-full flex items-center justify-center mx-auto mb-8">
+      <div className="min-h-screen bg-gradient-to-br from-[#1a1b2e] to-[#252742] flex items-center justify-center p-4 font-sans">
+        <div className="card p-12 text-center w-full max-w-md border border-[#404556]">
+          <div className="w-16 h-16 bg-[#6366f1]/10 text-[#6366f1] rounded-lg flex items-center justify-center mx-auto mb-8">
             <User size={32} />
           </div>
-          <h1 className="text-2xl font-medium text-[#202124] mb-4">ログインが必要です</h1>
-          <p className="text-[#5f6368] mb-8 leading-relaxed">
+          <h1 className="text-2xl font-semibold text-[#e5e7eb] mb-4">ログインが必要です</h1>
+          <p className="text-[#9ca3af] mb-8 leading-relaxed">
             Launchs を管理するには、AuthBase での認証が必要です。下のボタンからログインページへ進んでください。
           </p>
           
           <a 
             href="/auth/login" 
-            className="inline-block w-full bg-[#1a73e8] hover:bg-[#1765cc] text-white font-medium py-3 px-6 rounded-md transition-all shadow-sm hover:shadow-md"
+            className="inline-block w-full bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium py-3 px-6 rounded-lg transition-all shadow-lg shadow-[#6366f1]/20 hover:shadow-xl hover:shadow-[#6366f1]/30"
           >
             ログイン画面へ移動
           </a>
           
-          <p className="mt-6 text-xs text-gray-400">
+          <p className="mt-6 text-xs text-[#9ca3af]">
             ログイン後、このページに戻ってきてください。
           </p>
         </div>
