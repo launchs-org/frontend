@@ -1,17 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --color-google-blue: #1a73e8;
-  --color-google-red: #d93025;
-  --color-google-yellow: #f9ab00;
-  --color-google-green: #1e8e3e;
-  --color-bg-gray: #f8f9fa;
-  --font-sans: "Roboto", "Inter", system-ui, -apple-system, sans-serif;
+  --color-primary: #0ea5e9;
+  --color-primary-dark: #0284c7;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-border: #475569;
+  --font-sans: "Inter", "Roboto", system-ui, -apple-system, sans-serif;
 }
 
 :root {
-  background-color: #f8f9fa;
-  color: #3c4043;
+  background-color: #0f172a;
+  color: #f1f5f9;
 }
 
 body {
@@ -20,7 +26,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Material Design style scrollbar */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -31,63 +37,80 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #dadce0;
+  background: #475569;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bdc1c6;
+  background: #64748b;
 }
 
-.google-card {
-  background: #ffffff;
-  border: 1px solid #dadce0;
+.card {
+  background: #1e293b;
+  border: 1px solid #334155;
   border-radius: 8px;
-  transition: box-shadow 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
-.google-card:hover {
-  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15);
+.card:hover {
+  border-color: #475569;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.5);
 }
 
 .btn-primary {
-  background-color: #1a73e8;
+  background-color: #0ea5e9;
   color: white;
   padding: 8px 24px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
 .btn-primary:hover {
-  background-color: #1765cc;
-  box-shadow: 0 1px 2px 0 rgba(66,133,244,0.30), 0 1px 3px 1px rgba(66,133,244,0.15);
+  background-color: #0284c7;
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.3);
+}
+
+.btn-secondary {
+  background-color: #334155;
+  color: #f1f5f9;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: 1px solid #475569;
+}
+
+.btn-secondary:hover {
+  background-color: #475569;
+  border-color: #64748b;
 }
 
 .sidebar-item-active {
-  background-color: #e8f0fe;
-  color: #1a73e8;
-  border-radius: 0 25px 25px 0;
+  background-color: rgba(14, 165, 233, 0.1);
+  color: #0ea5e9;
+  border-left: 3px solid #0ea5e9;
 }
 
-.google-input {
+.input {
   width: 100%;
   padding: 10px 12px;
-  background-color: #ffffff;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
   font-size: 14px;
   line-height: 20px;
-  color: #3c4043;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  color: #f1f5f9;
+  transition: all 0.2s;
 }
 
-.google-input:focus {
+.input:focus {
   outline: none;
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
 }
 
-.google-input::placeholder {
-  color: #70757a;
+.input::placeholder {
+  color: #94a3b8;
 }

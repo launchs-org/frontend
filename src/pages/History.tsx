@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, RotateCcw, Filter, Search, ChevronRight } from 'lucide-react';
+import { History, RotateCcw, Filter, Search } from 'lucide-react';
 
 const HistoryPage: React.FC = () => {
   return (
