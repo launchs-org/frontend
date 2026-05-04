@@ -15,7 +15,8 @@ import {
   Loader2,
   FileText,
   Clock,
-  X
+  X,
+  Info
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -41,6 +42,8 @@ const ContainerDetail: React.FC = () => {
   const [buildJobs, setBuildJobs] = useState<BuildJob[]>([]);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const [execLogs, setExecLogs] = useState<LogEntry[]>([]);
+  const [customDomain, setCustomDomain] = useState('');
+  const [customDomainEnabled, setCustomDomainEnabled] = useState(true);
   const [streamingBuild, setStreamingBuild] = useState(false);
   const [streamingExec, setStreamingExec] = useState(false);
   const [selectedBuildJobId, setSelectedBuildJobId] = useState<string | null>(null);
@@ -54,7 +57,12 @@ const ContainerDetail: React.FC = () => {
   const fetchContainer = async () => {
     try {
       const res = await api.get(`/app/v1/containers/${id}`);
-      setContainer(res.data.data);
+      const data = res.data.data;
+      setContainer(data);
+      if (data.ingress) {
+        setCustomDomain(data.ingress.custom_domain || '');
+        setCustomDomainEnabled(data.ingress.custom_domain_enabled);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -749,16 +757,75 @@ const ContainerDetail: React.FC = () => {
                         Port {container.ingress.http_port} (HTTP)
                       </div>
                     </div>
-                    <button 
-                      onClick={async () => {
-                        if(!confirm('外部公開を停止しますか？')) return;
-                        await api.delete(`/app/v1/containers/${id}/ingress`);
-                        setContainer({...container, ingress: null});
-                      }}
-                      className="w-full py-2 border border-google-red text-google-red rounded text-sm font-medium hover:bg-red-50 transition-colors"
-                    >
-                      公開を停止する
-                    </button>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#5f6368] uppercase tracking-wider">カスタムドメイン (任意)</label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-medium text-[#5f6368]">{customDomainEnabled ? '有効' : '無効'}</span>
+                          <button 
+                            onClick={() => setCustomDomainEnabled(!customDomainEnabled)}
+                            className={cn(
+                              "relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none",
+                              customDomainEnabled ? "bg-google-blue" : "bg-gray-200"
+                            )}
+                          >
+                            <span className={cn(
+                              "inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform",
+                              customDomainEnabled ? "translate-x-3.5" : "translate-x-1"
+                            )} />
+                          </button>
+                        </div>
+                      </div>
+                      <input 
+                        type="text"
+                        value={customDomain}
+                        onChange={(e) => setCustomDomain(e.target.value)}
+                        placeholder="example.com"
+                        className="google-input"
+                      />
+                      {customDomain && customDomainEnabled && (
+                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-start space-x-2">
+                          <Info size={14} className="text-google-blue mt-0.5 shrink-0" />
+                          <p className="text-[11px] text-google-blue leading-relaxed">
+                            ドメインのDNS設定で <strong>{container.ingress.subdomain}</strong> へのCNAMEレコードを追加してください。
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex space-x-3">
+                      <button 
+                        onClick={async () => {
+                          const port = container.ingress.http_port;
+                          try {
+                            const res = await api.patch(`/app/v1/containers/${id}/ingress`, { 
+                              http_port: port,
+                              custom_domain: customDomain,
+                              custom_domain_enabled: customDomainEnabled
+                            });
+                            setContainer({...container, ingress: res.data.data});
+                            alert('カスタムドメイン設定を更新しました。');
+                          } catch (err) {
+                            console.error(err);
+                            alert('更新に失敗しました。');
+                          }
+                        }}
+                        className="flex-1 py-2 bg-google-blue text-white rounded text-sm font-medium hover:shadow-md transition-all"
+                      >
+                        更新して適用
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          if(!confirm('外部公開を停止しますか？')) return;
+                          await api.delete(`/app/v1/containers/${id}/ingress`);
+                          setContainer({...container, ingress: null});
+                          setCustomDomain('');
+                          setCustomDomainEnabled(true);
+                        }}
+                        className="flex-1 py-2 border border-google-red text-google-red rounded text-sm font-medium hover:bg-red-50 transition-colors"
+                      >
+                        公開を停止する
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -776,10 +843,41 @@ const ContainerDetail: React.FC = () => {
                         ))}
                       </select>
                     </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#5f6368] uppercase tracking-wider">カスタムドメイン (任意)</label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-medium text-[#5f6368]">{customDomainEnabled ? '有効' : '無効'}</span>
+                          <button 
+                            onClick={() => setCustomDomainEnabled(!customDomainEnabled)}
+                            className={cn(
+                              "relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none",
+                              customDomainEnabled ? "bg-google-blue" : "bg-gray-200"
+                            )}
+                          >
+                            <span className={cn(
+                              "inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform",
+                              customDomainEnabled ? "translate-x-3.5" : "translate-x-1"
+                            )} />
+                          </button>
+                        </div>
+                      </div>
+                      <input 
+                        type="text"
+                        value={customDomain}
+                        onChange={(e) => setCustomDomain(e.target.value)}
+                        placeholder="example.com"
+                        className="google-input"
+                      />
+                    </div>
                     <button 
                       onClick={async () => {
                         const port = (document.getElementById('ingress-target-port') as HTMLSelectElement).value;
-                        const res = await api.post(`/app/v1/containers/${id}/ingress`, { http_port: parseInt(port) });
+                        const res = await api.post(`/app/v1/containers/${id}/ingress`, { 
+                          http_port: parseInt(port),
+                          custom_domain: customDomain,
+                          custom_domain_enabled: customDomainEnabled
+                        });
                         setContainer({...container, ingress: res.data.data});
                       }}
                       className="w-full py-2 bg-google-blue text-white rounded text-sm font-medium hover:shadow-md transition-all flex items-center justify-center space-x-2"
