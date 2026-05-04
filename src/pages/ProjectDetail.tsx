@@ -53,9 +53,9 @@ const ProjectDetail: React.FC = () => {
     resources: '{}'
   });
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [projRes, histRes] = await Promise.all([
         api.get(`/app/v1/projects/${id}`),
         api.get(`/app/v1/projects/${id}/histories`)
@@ -67,13 +67,29 @@ const ProjectDetail: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch project data:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
   }, [id, location]);
+
+  // Poll containers if any is building or deploying
+  useEffect(() => {
+    let interval: any;
+    const hasTransitional = containers.some(c => c.status === 'Building' || c.status === 'Deploying');
+    
+    if (hasTransitional) {
+      interval = setInterval(() => {
+        fetchData(true);
+      }, 3000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [containers]);
 
   const handleRollback = async (historyId: string) => {
     if (!confirm('このスナップショットの状態にロールバックしますか？')) return;

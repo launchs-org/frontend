@@ -50,8 +50,8 @@ const ContainerDetail: React.FC = () => {
   const [selectedBuildJobId, setSelectedBuildJobId] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const execWsRef = useRef<WebSocket | null>(null);
-  const logEndRef = useRef<HTMLDivElement>(null);
-  const execLogEndRef = useRef<HTMLDivElement>(null);
+  const buildLogContainerRef = useRef<HTMLDivElement>(null);
+  const execLogContainerRef = useRef<HTMLDivElement>(null);
   const buildSseRef = useRef<AbortController | null>(null);
   const execSseRef = useRef<AbortController | null>(null);
 
@@ -85,6 +85,22 @@ const ContainerDetail: React.FC = () => {
   useEffect(() => {
     fetchContainer();
   }, [id]);
+
+  // Poll container status if it's building or deploying
+  useEffect(() => {
+    let interval: any;
+    const isTransitional = container?.status === 'Building' || container?.status === 'Deploying';
+    
+    if (isTransitional) {
+      interval = setInterval(() => {
+        fetchContainer();
+      }, 3000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [container?.status]);
 
   useEffect(() => {
     if (activeTab === 'builds' || activeTab === 'build-logs') {
@@ -129,11 +145,23 @@ const ContainerDetail: React.FC = () => {
   }, [id, activeTab]);
 
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    if (buildLogContainerRef.current) {
+      const el = buildLogContainerRef.current;
+      const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 150;
+      if (isAtBottom) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }
   }, [buildLogs]);
 
   useEffect(() => {
-    execLogEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    if (execLogContainerRef.current) {
+      const el = execLogContainerRef.current;
+      const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 150;
+      if (isAtBottom) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }
   }, [execLogs]);
 
 
@@ -450,7 +478,10 @@ const ContainerDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-[#1e1e1e] text-[#d4d4d4] p-6 font-mono text-[13px] leading-relaxed min-h-[600px] rounded-2xl shadow-2xl border border-[#333] max-h-[75vh] overflow-y-auto custom-scrollbar relative">
+            <div 
+              ref={buildLogContainerRef}
+              className="bg-[#1e1e1e] text-[#d4d4d4] p-6 font-mono text-[13px] leading-relaxed min-h-[600px] rounded-2xl shadow-2xl border border-[#333] max-h-[75vh] overflow-y-auto custom-scrollbar relative"
+            >
               <div className="sticky top-0 right-0 flex justify-end pointer-events-none mb-4">
                  <div className="bg-white/5 backdrop-blur px-3 py-1 rounded-full text-[10px] text-white/40 border border-white/10 uppercase tracking-tighter">
                    Console Output
@@ -474,7 +505,6 @@ const ContainerDetail: React.FC = () => {
                       <span className="break-all whitespace-pre-wrap group-hover:text-white transition-colors">{line || ' '}</span>
                     </div>
                   ))}
-                  <div ref={logEndRef} />
                 </div>
               )}
             </div>
@@ -499,7 +529,10 @@ const ContainerDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-[#1e1e1e] text-[#d4d4d4] p-6 font-mono text-[13px] leading-relaxed min-h-[600px] rounded-2xl shadow-2xl border border-[#333] max-h-[75vh] overflow-y-auto custom-scrollbar relative">
+            <div 
+              ref={execLogContainerRef}
+              className="bg-[#1e1e1e] text-[#d4d4d4] p-6 font-mono text-[13px] leading-relaxed min-h-[600px] rounded-2xl shadow-2xl border border-[#333] max-h-[75vh] overflow-y-auto custom-scrollbar relative"
+            >
               <div className="sticky top-0 right-0 flex justify-end pointer-events-none mb-4">
                  <div className="bg-white/5 backdrop-blur px-3 py-1 rounded-full text-[10px] text-white/40 border border-white/10 uppercase tracking-tighter">
                    Runtime Output
@@ -523,7 +556,6 @@ const ContainerDetail: React.FC = () => {
                       <span className="break-all whitespace-pre-wrap group-hover:text-white transition-colors">{entry.message || ' '}</span>
                     </div>
                   ))}
-                  <div ref={execLogEndRef} />
                 </div>
               )}
             </div>
