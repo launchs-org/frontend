@@ -16,7 +16,11 @@ import {
   FileText,
   Clock,
   X,
-  Info
+  Info,
+  Database,
+  Trash2,
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -38,7 +42,7 @@ interface LogEntry {
 const ContainerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networking' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networking' | 'volumes' | 'history'>('overview');
   const [container, setContainer] = useState<any>(null);
   const [buildJobs, setBuildJobs] = useState<BuildJob[]>([]);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
@@ -48,6 +52,9 @@ const ContainerDetail: React.FC = () => {
   const [streamingBuild, setStreamingBuild] = useState(false);
   const [streamingExec, setStreamingExec] = useState(false);
   const [selectedBuildJobId, setSelectedBuildJobId] = useState<string | null>(null);
+  const [volumes, setVolumes] = useState<any[]>([]);
+  const [newVolume, setNewVolume] = useState({ name: '', size_mb: 128, mount_path: '/data' });
+  const [isCreatingVolume, setIsCreatingVolume] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const execWsRef = useRef<WebSocket | null>(null);
   const buildLogContainerRef = useRef<HTMLDivElement>(null);
@@ -82,9 +89,29 @@ const ContainerDetail: React.FC = () => {
     }
   };
 
+  const fetchVolumes = async () => {
+    try {
+      const res = await api.get(`/app/v1/containers/${id}/volumes`);
+      setVolumes(res.data.data.items || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchContainer();
   }, [id]);
+
+  useEffect(() => {
+    let interval: any;
+    if (activeTab === 'volumes') {
+      fetchVolumes();
+      interval = setInterval(fetchVolumes, 5000); // 5秒ごとに更新
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeTab, id]);
 
   // Poll container status if it's building or deploying
   useEffect(() => {
@@ -105,6 +132,9 @@ const ContainerDetail: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'builds' || activeTab === 'build-logs') {
       fetchBuildJobs();
+    }
+    if (activeTab === 'volumes') {
+      fetchVolumes();
     }
   }, [id, activeTab]);
 
@@ -266,22 +296,27 @@ const ContainerDetail: React.FC = () => {
   };
 
 
-  const handleRedeploy = async () => {
-    if (!confirm('現在の設定で再デプロイを実行しますか？')) return;
+  const handleRebuild = async () => {
+    if (!confirm('最新のソースコードでビルドをやり直しますか？')) return;
     try {
-      await api.patch(`/app/v1/containers/${id}`, {
-        repository_url: container.repository_url,
-        branch: container.branch,
-        directory: container.directory,
-        env_vars: container.env_vars,
-        replicas: container.replicas,
-        resources: container.resources
-      });
-      alert('再デプロイを開始しました');
+      await api.post(`/app/v1/containers/${id}/rebuild`);
+      alert('再ビルドを開始しました');
       fetchContainer();
       fetchBuildJobs();
       setActiveTab('build-logs');
       setSelectedBuildJobId(null); // Force newest selection in fetchBuildJobs
+    } catch (err) {
+      console.error(err);
+      alert('再ビルドの開始に失敗しました。');
+    }
+  };
+
+  const handleRedeploy = async () => {
+    if (!confirm('ビルドは行わずに、現在のイメージでデプロイのみをやり直しますか？')) return;
+    try {
+      await api.post(`/app/v1/containers/${id}/redeploy`);
+      alert('再デプロイを開始しました');
+      fetchContainer();
     } catch (err) {
       console.error(err);
       alert('再デプロイの開始に失敗しました。');
@@ -306,6 +341,7 @@ const ContainerDetail: React.FC = () => {
     { id: 'build-logs', label: 'ビルドログ', icon: Terminal },
     { id: 'exec-logs', label: '実行ログ', icon: FileText },
     { id: 'networking', label: 'ネットワーキング', icon: Globe },
+    { id: 'volumes', label: 'ボリューム', icon: Database },
     { id: 'history', label: '履歴・復元', icon: History },
   ];
 
@@ -354,6 +390,13 @@ const ContainerDetail: React.FC = () => {
             >
               <RotateCcw size={16} />
               <span>再デプロイ</span>
+            </button>
+            <button 
+              onClick={handleRebuild}
+              className="px-4 py-2 border border-google-blue bg-blue-50/30 rounded-md text-sm font-medium text-google-blue hover:bg-blue-50 flex items-center space-x-2"
+            >
+              <RefreshCw size={16} />
+              <span>再ビルド</span>
             </button>
             <button className="px-6 py-2 bg-google-blue text-white text-sm font-medium rounded-md hover:shadow-md transition-all">
               設定
@@ -945,6 +988,168 @@ const ContainerDetail: React.FC = () => {
         )}
 
 
+
+        {activeTab === 'volumes' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Volume List */}
+              <div className="flex-1 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                      <Database size={20} />
+                    </div>
+                    <h3 className="text-lg font-medium text-[#202124]">マウント済みボリューム</h3>
+                  </div>
+                  <span className="text-xs font-medium text-[#5f6368]">{volumes.length} 個のボリューム</span>
+                </div>
+
+                <div className="space-y-4">
+                  {volumes.length === 0 ? (
+                    <div className="p-12 text-center google-card border-dashed border-2 bg-gray-50/50">
+                      <Database size={32} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-sm text-[#5f6368]">ボリュームが設定されていません</p>
+                      <p className="text-xs text-gray-400 mt-1">右側のフォームから新しく作成できます</p>
+                    </div>
+                  ) : (
+                    volumes.map((vol) => (
+                      <div key={vol.id} className="google-card p-5 flex items-center justify-between group hover:shadow-md transition-all">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
+                            <Database size={20} />
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h4 className="text-sm font-medium text-[#202124]">{vol.name}</h4>
+                              {vol.status === 'Deleting' && (
+                                <span className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100 animate-pulse font-medium">削除中</span>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-3 mt-1">
+                              <span className="text-[11px] font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{vol.mount_path}</span>
+                              <span className="text-[11px] text-gray-400">•</span>
+                              <span className="text-[11px] text-gray-500">{vol.size_mb} MB</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          disabled={vol.status === 'Deleting'}
+                          onClick={async () => {
+                            if (!confirm('ボリュームを削除しますか？保存されているデータは失われます。')) return;
+                            try {
+                              await api.delete(`/app/v1/volumes/${vol.id}`);
+                              fetchVolumes();
+                            } catch (err) {
+                              console.error(err);
+                              alert('ボリュームの削除に失敗しました');
+                            }
+                          }}
+                          className={cn(
+                            "p-2 transition-colors",
+                            vol.status === 'Deleting' ? "text-gray-200 cursor-not-allowed" : "text-gray-300 hover:text-google-red"
+                          )}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                {volumes.length > 0 && (
+                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg flex items-start space-x-3">
+                    <Info size={18} className="text-amber-600 mt-0.5 shrink-0" />
+                    <div className="text-xs text-amber-700 leading-relaxed">
+                      <strong>注意:</strong> ボリュームの追加・削除を反映するには、コンテナの再デプロイが必要です。
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Create Volume Form */}
+              <div className="w-full md:w-80 space-y-6">
+                <div className="google-card p-6 space-y-6">
+                  <h3 className="text-sm font-medium text-[#202124] flex items-center space-x-2">
+                    <Plus size={16} className="text-google-blue" />
+                    <span>新規ボリューム作成</span>
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider">名前</label>
+                      <input 
+                        type="text" 
+                        value={newVolume.name}
+                        onChange={(e) => setNewVolume({...newVolume, name: e.target.value})}
+                        className="google-input !py-2 text-sm" 
+                        placeholder="data-storage"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider">マウントパス</label>
+                      <input 
+                        type="text" 
+                        value={newVolume.mount_path}
+                        onChange={(e) => setNewVolume({...newVolume, mount_path: e.target.value})}
+                        className="google-input !py-2 text-sm font-mono" 
+                        placeholder="/data"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider">サイズ (MB)</label>
+                      <div className="flex items-center space-x-3">
+                        <input 
+                          type="range" 
+                          min="128" 
+                          max="5120" 
+                          step="128"
+                          value={newVolume.size_mb}
+                          onChange={(e) => setNewVolume({...newVolume, size_mb: parseInt(e.target.value)})}
+                          className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-google-blue"
+                        />
+                        <span className="text-xs font-mono w-16 text-right">{newVolume.size_mb}MB</span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1 italic">最大 5GB まで選択可能</p>
+                    </div>
+
+                    <button 
+                      disabled={!newVolume.name || !newVolume.mount_path || isCreatingVolume}
+                      onClick={async () => {
+                        setIsCreatingVolume(true);
+                        try {
+                          await api.post(`/app/v1/containers/${id}/volumes`, newVolume);
+                          setNewVolume({ name: '', size_mb: 128, mount_path: '/data' });
+                          fetchVolumes();
+                          alert('ボリュームを作成しました。再デプロイ後にマウントされます。');
+                        } catch (err) {
+                          console.error(err);
+                          alert('ボリュームの作成に失敗しました');
+                        } finally {
+                          setIsCreatingVolume(false);
+                        }
+                      }}
+                      className={cn(
+                        "w-full py-2 rounded text-sm font-medium transition-all shadow-sm hover:shadow-md",
+                        (!newVolume.name || !newVolume.mount_path || isCreatingVolume)
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-google-blue text-white hover:bg-blue-600"
+                      )}
+                    >
+                      {isCreatingVolume ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>作成中...</span>
+                        </div>
+                      ) : (
+                        "ボリュームを作成"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeTab === 'history' && (
           <div className="space-y-6">
