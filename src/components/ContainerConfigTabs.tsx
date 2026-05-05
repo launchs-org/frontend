@@ -11,21 +11,32 @@ import {
   Trash2,
   Loader2,
   Save,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { cn } from '../lib/utils';
 
 type TabType = 'general' | 'deployment' | 'volumes' | 'env-vars' | 'build-logs' | 'exec-logs';
 
 interface Container {
   id: string;
   name: string;
+  project_id: string;
   repository_url: string;
   branch: string;
   status: string;
   version: string;
   replicas: number;
   directory: string;
+}
+
+interface BuildJob {
+  id: string;
+  status: string;
+  created_at: string;
+  finished_at?: string;
+  version?: string;
 }
 
 interface ContainerConfigTabsProps {
@@ -43,12 +54,19 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
   const [newVolume, setNewVolume] = useState({ name: '', size_mb: 128, mount_path: '/data' });
   const [isCreatingVolume, setIsCreatingVolume] = useState(false);
 
+  // Logs state
+  const [buildJobs, setBuildJobs] = useState<BuildJob[]>([]);
+  const [selectedBuildJobId, setSelectedBuildJobId] = useState<string | null>(null);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const [execLogs, setExecLogs] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [streamingBuild, setStreamingBuild] = useState(false);
+  const [streamingExec, setStreamingExec] = useState(false);
 
   const buildLogContainerRef = useRef<HTMLDivElement>(null);
   const execLogContainerRef = useRef<HTMLDivElement>(null);
+  const buildWsRef = useRef<WebSocket | null>(null);
+  const execWsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     if (activeTab === 'env-vars') {
@@ -56,11 +74,28 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
     } else if (activeTab === 'volumes') {
       fetchVolumes();
     } else if (activeTab === 'build-logs') {
-      fetchBuildLogs();
+      fetchBuildJobs();
     } else if (activeTab === 'exec-logs') {
-      fetchExecLogs();
+      startExecLogStream();
     }
+
+    return () => {
+      stopStreams();
+    };
   }, [activeTab, container.id]);
+
+  const stopStreams = () => {
+    if (buildWsRef.current) {
+      buildWsRef.current.close();
+      buildWsRef.current = null;
+    }
+    if (execWsRef.current) {
+      execWsRef.current.close();
+      execWsRef.current = null;
+    }
+    setStreamingBuild(false);
+    setStreamingExec(false);
+  };
 
   const fetchEnvVars = async () => {
     try {
@@ -77,48 +112,121 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
   const fetchVolumes = async () => {
     try {
       const res = await api.get(`/app/v1/containers/${container.id}/volumes`);
-      setVolumes(res.data.data || []);
+      setVolumes(res.data.data?.items || []);
     } catch (error) {
       console.error('Failed to fetch volumes:', error);
       addToast('ボリュームの取得に失敗しました', 'error');
     }
   };
 
-  const fetchBuildLogs = async () => {
-    setLogsLoading(true);
+  const fetchBuildJobs = async () => {
     try {
-      const res = await api.get(`/app/v1/containers/${container.id}/build-logs`);
-      setBuildLogs(res.data.data || []);
-      setTimeout(() => {
-        if (buildLogContainerRef.current) {
-          buildLogContainerRef.current.scrollTop = buildLogContainerRef.current.scrollHeight;
-        }
-      }, 0);
+      const res = await api.get(`/app/v1/containers/${container.id}/build-jobs`);
+      const jobs = res.data.data.items || [];
+      setBuildJobs(jobs);
+      if (jobs.length > 0 && !selectedBuildJobId) {
+        setSelectedBuildJobId(jobs[0].id);
+      }
     } catch (error) {
-      console.error('Failed to fetch build logs:', error);
-      addToast('ビルドログの取得に失敗しました', 'error');
-    } finally {
-      setLogsLoading(false);
+      console.error('Failed to fetch build jobs:', error);
     }
   };
 
-  const fetchExecLogs = async () => {
-    setLogsLoading(true);
-    try {
-      const res = await api.get(`/app/v1/containers/${container.id}/exec-logs`);
-      setExecLogs(res.data.data || []);
-      setTimeout(() => {
-        if (execLogContainerRef.current) {
-          execLogContainerRef.current.scrollTop = execLogContainerRef.current.scrollHeight;
-        }
-      }, 0);
-    } catch (error) {
-      console.error('Failed to fetch exec logs:', error);
-      addToast('実行ログの取得に失敗しました', 'error');
-    } finally {
-      setLogsLoading(false);
+  useEffect(() => {
+    if (activeTab === 'build-logs' && selectedBuildJobId) {
+      startBuildLogStream(selectedBuildJobId);
     }
+  }, [selectedBuildJobId, activeTab]);
+
+  const startBuildLogStream = (jobId: string) => {
+    stopStreams();
+    setBuildLogs([]);
+    setLogsLoading(true);
+
+    const selectedJob = buildJobs.find(j => j.id === jobId);
+    const isFinished = selectedJob && ['Success', 'Failed', 'Cancelled'].includes(selectedJob.status);
+
+    if (isFinished) {
+      api.get(`/app/v1/build-jobs/${jobId}/logs`)
+        .then(res => {
+          const logData = res.data.data.log;
+          if (logData) {
+            setBuildLogs(logData.split('\n').filter((l: string) => l.trim() !== ''));
+          } else {
+            setBuildLogs(['ログが保存されていません。']);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch build logs", err);
+          setBuildLogs(['ログの取得に失敗しました。']);
+        })
+        .finally(() => setLogsLoading(false));
+      return;
+    }
+
+    setStreamingBuild(true);
+    setLogsLoading(false);
+    
+    const token = sessionStorage.getItem('access_token');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const ws = new WebSocket(`${protocol}//${host}/app/v1/ws/build-jobs/${jobId}`, token || '');
+    buildWsRef.current = ws;
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === 'log' && data.log) {
+          const lines = data.log.split('\n');
+          setBuildLogs(prev => [...prev, ...lines.filter((l: string) => l.trim() !== '')]);
+        } else if (data.event === 'done') {
+          setStreamingBuild(false);
+          fetchBuildJobs();
+          ws.close();
+        }
+      } catch (e) {
+        console.error("WS parse error", e);
+      }
+    };
   };
+
+  const startExecLogStream = () => {
+    stopStreams();
+    setExecLogs([]);
+    setStreamingExec(true);
+
+    const token = sessionStorage.getItem('access_token');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const ws = new WebSocket(`${protocol}//${host}/app/v1/ws/containers/${container.id}/logs`, token || '');
+    execWsRef.current = ws;
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === 'log') {
+          setExecLogs(prev => [...prev, {
+            pod_name: data.pod || 'unknown',
+            message: data.log || ''
+          }]);
+        }
+      } catch (e) {
+        console.error("Exec WS parse error", e);
+      }
+    };
+  };
+
+  useEffect(() => {
+    if (buildLogContainerRef.current) {
+      buildLogContainerRef.current.scrollTop = buildLogContainerRef.current.scrollHeight;
+    }
+  }, [buildLogs]);
+
+  useEffect(() => {
+    if (execLogContainerRef.current) {
+      execLogContainerRef.current.scrollTop = execLogContainerRef.current.scrollHeight;
+    }
+  }, [execLogs]);
 
   const handleAddEnvVar = () => {
     setEnvVars([...envVars, { key: '', value: '' }]);
@@ -195,7 +303,7 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
   ] as const;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Tab Navigation */}
       <div className="border-b border-[#404556] px-4 py-3 overflow-x-auto flex-shrink-0">
         <div className="flex space-x-2">
@@ -203,11 +311,12 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition-colors flex items-center space-x-1.5 ${
+              className={cn(
+                "px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition-colors flex items-center space-x-1.5",
                 activeTab === tab.id
                   ? 'bg-[#6366f1]/10 text-[#6366f1]'
                   : 'text-[#9ca3af] hover:bg-[#3a3d52]'
-              }`}
+              )}
             >
               <tab.icon size={14} />
               <span>{tab.name}</span>
@@ -234,7 +343,7 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
             </div>
             <div>
               <p className="text-xs font-semibold text-[#9ca3af] uppercase mb-1">バージョン</p>
-              <p className="text-xs text-[#6366f1] font-mono">{container.version}</p>
+              <p className="text-xs text-[#6366f1] font-mono">{container.version || '---'}</p>
             </div>
             <div>
               <p className="text-xs font-semibold text-[#9ca3af] uppercase mb-1">レプリカ数</p>
@@ -248,9 +357,10 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
             <div>
               <p className="text-xs font-semibold text-[#9ca3af] uppercase mb-1">ステータス</p>
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
                   container.status === 'Running' ? 'bg-[#10b981]' : 'bg-[#f59e0b]'
-                }`} />
+                )} />
                 <span className="text-sm text-[#e5e7eb]">{container.status}</span>
               </div>
             </div>
@@ -265,7 +375,7 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
           <div className="space-y-3">
             <div className="space-y-2">
               {envVars.map((envVar, idx) => (
-                <div key={idx} className="flex items-center space-x-2 bg-[#1a1b2e] rounded p-2">
+                <div key={idx} className="flex items-center space-x-2 bg-[#1a1b2e] rounded p-2 border border-[#404556]">
                   <input
                     type="text"
                     placeholder="KEY"
@@ -385,50 +495,89 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
         )}
 
         {activeTab === 'build-logs' && (
-          <div className="space-y-2">
-            {logsLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 size={16} className="animate-spin text-[#6366f1]" />
-              </div>
-            ) : (
-              <div
-                ref={buildLogContainerRef}
-                className="bg-[#1a1b2e] rounded p-3 border border-[#404556] h-48 overflow-y-auto font-mono text-[10px] text-[#10b981] space-y-0.5"
+          <div className="space-y-3 flex flex-col h-full">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <select 
+                value={selectedBuildJobId || ''} 
+                onChange={(e) => setSelectedBuildJobId(e.target.value)}
+                className="input text-xs py-1.5 flex-1 bg-[#1a1b2e]"
               >
-                {buildLogs.length === 0 ? (
-                  <p className="text-[#9ca3af]">ログがありません</p>
-                ) : (
-                  buildLogs.map((log, idx) => (
-                    <div key={idx}>{log}</div>
-                  ))
-                )}
-              </div>
-            )}
+                <option value="" disabled>ビルドジョブを選択</option>
+                {buildJobs.map(job => (
+                  <option key={job.id} value={job.id}>
+                    {new Date(job.created_at).toLocaleString()} ({job.status})
+                  </option>
+                ))}
+              </select>
+              {streamingBuild && (
+                <div className="flex items-center space-x-1 px-2 py-1 bg-[#10b981]/10 text-[#10b981] rounded text-[10px] font-bold animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+                  <span>LIVE</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-h-0">
+              {logsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={20} className="animate-spin text-[#6366f1]" />
+                </div>
+              ) : (
+                <div
+                  ref={buildLogContainerRef}
+                  className="bg-[#0f172a] rounded p-3 border border-[#404556] h-64 overflow-y-auto font-mono text-[10px] text-[#94a3b8] space-y-0.5 custom-scrollbar"
+                >
+                  {buildLogs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-[#475569] space-y-2">
+                      <Clock size={24} className="opacity-20" />
+                      <p>ログがありません</p>
+                    </div>
+                  ) : (
+                    buildLogs.map((log, idx) => (
+                      <div key={idx} className="hover:bg-white/5 px-1 rounded transition-colors whitespace-pre-wrap break-all">
+                        <span className="text-[#475569] mr-2 select-none inline-block w-4 text-right">{(idx + 1)}</span>
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {activeTab === 'exec-logs' && (
-          <div className="space-y-2">
-            {logsLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 size={16} className="animate-spin text-[#6366f1]" />
-              </div>
-            ) : (
+          <div className="space-y-3 flex flex-col h-full">
+             <div className="flex items-center justify-between flex-shrink-0">
+              <h4 className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-wider">リアルタイム出力</h4>
+              {streamingExec && (
+                <div className="flex items-center space-x-1 px-2 py-1 bg-[#10b981]/10 text-[#10b981] rounded text-[10px] font-bold animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+                  <span>LIVE</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-1 min-h-0">
               <div
                 ref={execLogContainerRef}
-                className="bg-[#1a1b2e] rounded p-3 border border-[#404556] h-48 overflow-y-auto font-mono text-[10px] text-[#10b981] space-y-0.5"
+                className="bg-[#0f172a] rounded p-3 border border-[#404556] h-64 overflow-y-auto font-mono text-[10px] text-[#94a3b8] space-y-0.5 custom-scrollbar"
               >
                 {execLogs.length === 0 ? (
-                  <p className="text-[#9ca3af]">ログがありません</p>
+                  <div className="flex flex-col items-center justify-center h-full text-[#475569] space-y-2">
+                    <TerminalIcon size={24} className="opacity-20" />
+                    <p>ログ出力を待機中...</p>
+                  </div>
                 ) : (
                   execLogs.map((log, idx) => (
-                    <div key={idx}>
-                      <span className="text-[#6366f1]">[{log.pod_name}]</span> {log.message}
+                    <div key={idx} className="hover:bg-white/5 px-1 rounded transition-colors whitespace-pre-wrap break-all">
+                      <span className="text-[#6366f1] mr-2 select-none inline-block font-bold">[{log.pod_name.split('-').pop()}]</span> 
+                      {log.message}
                     </div>
                   ))
                 )}
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -437,3 +586,4 @@ const ContainerConfigTabs: React.FC<ContainerConfigTabsProps> = ({ container }) 
 };
 
 export default ContainerConfigTabs;
+

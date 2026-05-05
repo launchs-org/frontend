@@ -23,6 +23,7 @@ interface Container {
   version: string;
   replicas: number;
   directory: string;
+  project_id: string;
 }
 
 interface Project {
@@ -169,7 +170,7 @@ const ProjectDetail: React.FC = () => {
 
   if (loading && !project) {
     return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center space-y-4 bg-[#1a1b2e]">
+      <div className="w-full h-full flex flex-col items-center justify-center space-y-4 bg-[#1a1b2e]">
         <Loader2 className="w-8 h-8 text-[#6366f1] animate-spin" />
         <p className="text-[#9ca3af]">プロジェクトを読み込み中...</p>
       </div>
@@ -179,7 +180,8 @@ const ProjectDetail: React.FC = () => {
   const selectedContainer = containers.find(c => c.id === selectedContainerId) || null;
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-[#1a1b2e] overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-[#1a1b2e] overflow-hidden">
+
       {/* Top Navigation */}
       <div className="h-16 bg-[#252742] border-b border-[#404556] px-6 flex items-center justify-between z-20 flex-shrink-0">
         <div className="flex items-center space-x-4">
@@ -213,7 +215,7 @@ const ProjectDetail: React.FC = () => {
 
         {/* Right: Container Details Sidebar */}
         {selectedContainer && (
-          <div className="w-96 bg-[#252742] border-l border-[#404556] flex flex-col overflow-hidden">
+          <div className="w-80 bg-[#252742] border-l border-[#404556] flex flex-col overflow-hidden">
             {/* Sidebar Header */}
             <div className="h-14 border-b border-[#404556] px-6 flex items-center justify-between flex-shrink-0">
               <h3 className="font-semibold text-[#e5e7eb]">{selectedContainer.name}</h3>

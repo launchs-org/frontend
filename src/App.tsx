@@ -90,7 +90,6 @@ const App: React.FC = () => {
             <Route path="/containers/:id" element={<ContainerDetail />} />
             <Route path="/history" element={<History />} />
             <Route path="/monitoring" element={<Monitoring />} />
-            {/* Add more routes here as they are created */}
             <Route path="*" element={
               <div className="flex flex-col items-center justify-center h-full space-y-4">
                 <h1 className="text-9xl font-black italic tracking-tighter">404</h1>
@@ -107,5 +106,6 @@ const App: React.FC = () => {
     </ToastProvider>
   );
 };
+
 
 export default App;
