@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { 
   Plus, 
-  Search, 
   Folder, 
-  MoreVertical, 
-  ChevronRight,
   X,
   Loader2,
-  Trash2
+  Trash2,
+  ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -92,102 +90,114 @@ const Projects: React.FC = () => {
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-normal text-[#202124]">プロジェクト</h2>
-          <p className="text-sm text-[#5f6368] mt-1">デプロイ環境とサービスグループを管理します。</p>
+          <h2 className="text-2xl font-semibold text-[#e5e7eb]">プロジェクト</h2>
+          <p className="text-sm text-[#9ca3af] mt-1">デプロイ環境とサービスグループを管理します。</p>
         </div>
         
-        <div className="flex items-center space-x-4">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-            <input 
-              type="text" 
-              placeholder="プロジェクトを検索" 
-              className="pl-10 pr-4 py-2 bg-white border border-[#dadce0] rounded-md focus:outline-none focus:ring-1 focus:ring-google-blue focus:border-google-blue text-sm w-72"
-            />
-          </div>
-          <button 
-            onClick={() => setShowModal(true)}
-            className="flex items-center space-x-2 px-6 py-2 bg-google-blue text-white text-sm font-medium rounded-md hover:shadow-lg transition-all active:scale-95"
-          >
-            <Plus size={18} />
-            <span>新規プロジェクト</span>
-          </button>
-        </div>
+        <button 
+          onClick={() => setShowModal(true)}
+          className="flex items-center space-x-2 px-6 py-2 bg-[#6366f1] hover:bg-[#4f46e5] text-white text-sm font-medium rounded-lg transition-all shadow-lg shadow-[#6366f1]/20 hover:shadow-[#6366f1]/30 active:scale-95"
+        >
+          <Plus size={18} />
+          <span>新規プロジェクト</span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
-          [1, 2, 3].map((i) => (
-            <div key={i} className="google-card p-6 h-48 animate-pulse bg-gray-50" />
-          ))
-        ) : projects.length === 0 ? (
-          <div className="col-span-full py-20 text-center google-card border-dashed">
-            <Folder size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-[#5f6368]">プロジェクトがまだありません。新しいプロジェクトを作成してください。</p>
+      {loading ? (
+        <div className="card p-6">
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-[#3a3d52] animate-pulse rounded" />
+            ))}
           </div>
-        ) : (
-          projects.map((project) => (
-            <Link 
-              key={project.id} 
-              to={`/projects/${project.id}`}
-              className="google-card p-6 hover:shadow-lg transition-all group border-transparent hover:border-google-blue/20 relative"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="p-3 bg-blue-50 text-google-blue rounded-xl group-hover:bg-google-blue group-hover:text-white transition-colors">
-                  <Folder size={24} />
-                </div>
-                <div className="relative">
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setOpenMenuId(openMenuId === project.id ? null : project.id);
-                    }}
-                    className="p-2 text-[#5f6368] hover:bg-gray-100 rounded-full transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <MoreVertical size={18} />
-                  </button>
-                  {openMenuId === project.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl border border-gray-100 z-10 py-1 animate-in fade-in zoom-in duration-200">
-                      <button
-                        onClick={(e) => handleDeleteProject(e, project.id, project.name)}
-                        className="w-full text-left px-4 py-2 text-sm text-google-red hover:bg-red-50 flex items-center space-x-2 transition-colors"
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="card py-20 text-center">
+          <Folder size={48} className="mx-auto text-[#404556] mb-4" />
+          <p className="text-[#9ca3af]">プロジェクトがまだありません。新しいプロジェクトを作成してください。</p>
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="table-header">
+              <tr>
+                <th className="px-6 py-4 font-medium text-[#9ca3af]">プロジェクト名</th>
+                <th className="px-6 py-4 font-medium text-[#9ca3af]">ネームスペース</th>
+                <th className="px-6 py-4 font-medium text-[#9ca3af]">リソース名</th>
+                <th className="px-6 py-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <tr key={project.id} className="table-row group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center space-x-3">
+                      <Folder size={18} className="text-[#6366f1]" />
+                      <Link 
+                        to={`/projects/${project.id}`}
+                        className="font-medium text-[#6366f1] hover:text-[#8b5cf6] transition-colors"
                       >
-                        <Trash2 size={16} />
-                        <span>プロジェクトを削除</span>
-                      </button>
+                        {project.name}
+                      </Link>
                     </div>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium text-[#202124] group-hover:text-google-blue transition-colors">{project.name}</h3>
-                  <p className="text-xs text-[#5f6368] mt-1 truncate">ネームスペース: {project.namespace}</p>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-[#f1f3f4]">
-                  <span className="text-[10px] font-bold text-[#5f6368] uppercase tracking-wider truncate mr-2">リソース名: {project.k8s_resource_name}</span>
-                  <ChevronRight size={18} className="text-gray-300 group-hover:text-google-blue transition-all shrink-0" />
-                </div>
-              </div>
-            </Link>
-          ))
-        )}
-      </div>
+                  </td>
+                  <td className="px-6 py-4 text-[#9ca3af]">{project.namespace}</td>
+                  <td className="px-6 py-4">
+                    <code className="bg-[#1a1b2e] px-2 py-1 rounded text-xs text-[#6366f1] font-mono">
+                      {project.k8s_resource_name}
+                    </code>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link 
+                        to={`/projects/${project.id}`}
+                        className="p-2 hover:bg-[#6366f1]/10 rounded text-[#6366f1] transition-colors"
+                      >
+                        <ChevronRight size={18} />
+                      </Link>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === project.id ? null : project.id);
+                        }}
+                        className="p-2 hover:bg-[#3a3d52] rounded text-[#9ca3af] transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                      {openMenuId === project.id && (
+                        <div className="absolute right-8 mt-10 w-48 bg-[#252742] rounded-lg shadow-xl border border-[#404556] z-10 py-1 animate-in fade-in zoom-in duration-200">
+                          <button
+                            onClick={(e) => handleDeleteProject(e, project.id, project.name)}
+                            className="w-full text-left px-4 py-2 text-sm text-[#ef4444] hover:bg-[#ef4444]/10 flex items-center space-x-2 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                            <span>削除</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* New Project Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in duration-300 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="text-lg font-medium text-[#202124]">プロジェクトを新規作成</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <div className="card rounded-lg w-full max-w-md animate-in zoom-in duration-300 overflow-hidden border border-[#404556]">
+            <div className="px-6 py-4 border-b border-[#404556] flex justify-between items-center bg-[#1a1b2e]">
+              <h3 className="text-lg font-semibold text-[#e5e7eb]">プロジェクトを新規作成</h3>
+              <button onClick={() => setShowModal(false)} className="text-[#9ca3af] hover:text-[#e5e7eb] transition-colors">
                 <X size={20} />
               </button>
             </div>
             <form onSubmit={handleCreateProject} className="p-6 space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-[#5f6368] uppercase tracking-wider">プロジェクト名</label>
+                <label className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">プロジェクト名</label>
                 <input 
                   type="text" 
                   name="name"
@@ -196,9 +206,9 @@ const Projects: React.FC = () => {
                   required
                   pattern="^[a-z0-9-]+$"
                   placeholder="英小文字、数字、ハイフンのみ"
-                  className="w-full px-4 py-3 bg-white border border-[#dadce0] rounded-md focus:outline-none focus:ring-2 focus:ring-google-blue/20 focus:border-google-blue transition-all text-sm" 
+                  className="input"
                 />
-                <p className="text-[10px] text-[#5f6368]">
+                <p className="text-[10px] text-[#9ca3af]">
                   ※ プロジェクト名は Kubernetes のネームスペース名としても使用されます。
                 </p>
               </div>
@@ -207,14 +217,14 @@ const Projects: React.FC = () => {
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors text-sm"
+                  className="flex-1 px-4 py-2.5 border border-[#404556] text-[#e5e7eb] rounded-lg hover:bg-[#3a3d52] font-medium transition-colors text-sm"
                 >
                   キャンセル
                 </button>
                 <button 
                   type="submit" 
                   disabled={creating}
-                  className="flex-1 px-4 py-2.5 bg-google-blue text-white rounded-md hover:shadow-lg font-medium transition-all flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-lg font-medium transition-all flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
                 >
                   {creating ? (
                     <>
@@ -222,7 +232,7 @@ const Projects: React.FC = () => {
                       <span>作成中...</span>
                     </>
                   ) : (
-                    <span>プロジェクトを作成</span>
+                    <span>作成</span>
                   )}
                 </button>
               </div>

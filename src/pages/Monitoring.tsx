@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, TrendingUp, BarChart2, ShieldCheck } from 'lucide-react';
+import { TrendingUp, BarChart2, ShieldCheck } from 'lucide-react';
 
 const Monitoring: React.FC = () => {
   return (
