@@ -81,12 +81,12 @@ const App: React.FC = () => {
     <BrowserRouter basename="/ui/">
       <Layout>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Projects />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
-          <Route path="/containers/:id" element={<ContainerDetail />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/monitoring" element={<Monitoring />} />
+          {/* <Route path="/containers/:id" element={<ContainerDetail />} /> */}
+          {/* <Route path="/history" element={<History />} />
+          <Route path="/monitoring" element={<Monitoring />} /> */}
           {/* Add more routes here as they are created */}
           <Route path="*" element={
             <div className="flex flex-col items-center justify-center h-full space-y-4">

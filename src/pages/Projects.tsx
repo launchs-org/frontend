@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { 
-  Plus, 
-  Search, 
-  Folder, 
-  MoreVertical, 
+import {
+  Plus,
+  Search,
+  Folder,
+  MoreVertical,
   ChevronRight,
   X,
   Loader2,
@@ -25,7 +25,7 @@ const Projects: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  
+
   // New project form state
   const [formData, setFormData] = useState({
     name: ''
@@ -47,8 +47,8 @@ const Projects: React.FC = () => {
     fetchProjects();
   }, []);
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateProject = async (evt: React.FormEvent) => {
+    evt.preventDefault();
     setCreating(true);
     try {
       await api.post('/app/v1/projects', formData);
@@ -63,10 +63,10 @@ const Projects: React.FC = () => {
     }
   };
 
-  const handleDeleteProject = async (e: React.MouseEvent, id: string, name: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const handleDeleteProject = async (evt: React.MouseEvent, id: string, name: string) => {
+    evt.preventDefault();
+    evt.stopPropagation();
+
     if (!confirm(`プロジェクト "${name}" を削除しますか？\nこの操作は取り消せません。`)) return;
 
     try {
@@ -80,8 +80,8 @@ const Projects: React.FC = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+  const handleInputChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = evt.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -95,17 +95,17 @@ const Projects: React.FC = () => {
           <h2 className="text-2xl font-normal text-[#202124]">プロジェクト</h2>
           <p className="text-sm text-[#5f6368] mt-1">デプロイ環境とサービスグループを管理します。</p>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-            <input 
-              type="text" 
-              placeholder="プロジェクトを検索" 
+            <input
+              type="text"
+              placeholder="プロジェクトを検索"
               className="pl-10 pr-4 py-2 bg-white border border-[#dadce0] rounded-md focus:outline-none focus:ring-1 focus:ring-google-blue focus:border-google-blue text-sm w-72"
             />
           </div>
-          <button 
+          <button
             onClick={() => setShowModal(true)}
             className="flex items-center space-x-2 px-6 py-2 bg-google-blue text-white text-sm font-medium rounded-md hover:shadow-lg transition-all active:scale-95"
           >
@@ -127,8 +127,8 @@ const Projects: React.FC = () => {
           </div>
         ) : (
           projects.map((project) => (
-            <Link 
-              key={project.id} 
+            <Link
+              key={project.id}
               to={`/projects/${project.id}`}
               className="google-card p-6 hover:shadow-lg transition-all group border-transparent hover:border-google-blue/20 relative"
             >
@@ -137,7 +137,7 @@ const Projects: React.FC = () => {
                   <Folder size={24} />
                 </div>
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -188,15 +188,15 @@ const Projects: React.FC = () => {
             <form onSubmit={handleCreateProject} className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-[#5f6368] uppercase tracking-wider">プロジェクト名</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   required
                   pattern="^[a-z0-9-]+$"
                   placeholder="英小文字、数字、ハイフンのみ"
-                  className="w-full px-4 py-3 bg-white border border-[#dadce0] rounded-md focus:outline-none focus:ring-2 focus:ring-google-blue/20 focus:border-google-blue transition-all text-sm" 
+                  className="w-full px-4 py-3 bg-white border border-[#dadce0] rounded-md focus:outline-none focus:ring-2 focus:ring-google-blue/20 focus:border-google-blue transition-all text-sm"
                 />
                 <p className="text-[10px] text-[#5f6368]">
                   ※ プロジェクト名は Kubernetes のネームスペース名としても使用されます。
@@ -204,15 +204,15 @@ const Projects: React.FC = () => {
               </div>
 
               <div className="pt-2 flex space-x-3">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors text-sm"
                 >
                   キャンセル
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={creating}
                   className="flex-1 px-4 py-2.5 bg-google-blue text-white rounded-md hover:shadow-lg font-medium transition-all flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
                 >
