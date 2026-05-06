@@ -51,23 +51,32 @@ export const VolumesTab: React.FC<VolumesTabProps> = ({
                     </div>
                 ))}
             </div>
-            <div className="p-4 border border-dashed rounded-2xl bg-gray-50/50 space-y-3">
+            <div className="p-4 border border-dashed rounded-2xl bg-gray-50/50 space-y-4">
                 <p className="text-[10px] font-bold text-gray-500 uppercase">新規ボリューム</p>
-                <input
-                    value={newVolume.name}
-                    onChange={e => setNewVolume({ ...newVolume, name: e.target.value })}
-                    placeholder="名称"
-                    className="w-full p-2 text-xs border rounded-lg"
-                />
-                <input
-                    value={newVolume.mount_path}
-                    onChange={e => setNewVolume({ ...newVolume, mount_path: e.target.value })}
-                    placeholder="マウントパス (/data)"
-                    className="w-full p-2 text-xs border rounded-lg font-mono"
-                />
+                
                 <div className="space-y-1">
-                    <div className="flex justify-between text-[12px] font-bold text-gray-400">
-                        <span>サイズ</span>
+                    <label className="text-[10px] font-bold text-gray-400 block ml-1">ボリューム名</label>
+                    <input
+                        value={newVolume.name}
+                        onChange={e => setNewVolume({ ...newVolume, name: e.target.value })}
+                        placeholder="名称 (例: redis-data)"
+                        className="w-full p-2 text-xs border rounded-lg focus:ring-1 focus:ring-blue-500 outline-none"
+                    />
+                </div>
+
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 block ml-1">マウントパス</label>
+                    <input
+                        value={newVolume.mount_path}
+                        onChange={e => setNewVolume({ ...newVolume, mount_path: e.target.value })}
+                        placeholder="/data"
+                        className="w-full p-2 text-xs border rounded-lg font-mono focus:ring-1 focus:ring-blue-500 outline-none"
+                    />
+                </div>
+
+                <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-bold text-gray-400 ml-1">
+                        <span>容量</span>
                         <span>{newVolume.size_mb}MB</span>
                     </div>
                     <input
@@ -77,7 +86,7 @@ export const VolumesTab: React.FC<VolumesTabProps> = ({
                         step="128"
                         value={newVolume.size_mb}
                         onChange={e => setNewVolume({ ...newVolume, size_mb: parseInt(e.target.value) })}
-                        className="w-full accent-blue-500"
+                        className="w-full accent-blue-500 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     />
                 </div>
                 <button

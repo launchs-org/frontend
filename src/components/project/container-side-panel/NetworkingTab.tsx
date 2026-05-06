@@ -57,10 +57,18 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
                             {container.name}.ns-{container.project_id}.svc.cluster.local
                         </div>
                         <div className="space-y-2">
+                            {container?.service?.external_ip && (
+                                <div className="space-y-1">
+                                    <p className="text-[12px] font-bold text-gray-400">LOAD BALANCER IP</p>
+                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-mono border border-blue-100">
+                                        {container.service.external_ip}
+                                    </div>
+                                </div>
+                            )}
                             {JSON.parse(container?.service?.ports || '[]').map((p: any, idx: number) => (
                                 <div key={idx} className="flex items-center gap-2 p-2 border rounded-lg bg-white">
                                     <div className="flex-1">
-                                        <p className="text-[18px] text-gray-400 font-bold uppercase">Port</p>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">PORT(外から見た時)</p>
                                         <input
                                             type="number"
                                             value={p.port}
@@ -73,7 +81,7 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-[18px] text-gray-400 font-bold uppercase">Target</p>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">TARGET(待ち受けているポート)</p>
                                         <input
                                             type="number"
                                             value={p.target}

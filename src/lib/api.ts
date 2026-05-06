@@ -33,10 +33,11 @@ const REFRESH_PATH = import.meta.env.VITE_API_REFRESH_PATH || '/auth/token';
 
 // Request interceptor to add JWT token and handle URL prefixing
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  // Always send credentials
+  config.withCredentials = true;
+
   // If useRefreshToken is true, use refresh token
   if (config.useRefreshToken) {
-
-
     const refreshToken = getRefreshToken();
     if (refreshToken) {
       config.headers.Authorization = refreshToken;

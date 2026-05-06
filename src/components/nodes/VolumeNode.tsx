@@ -7,17 +7,17 @@ interface Props {
 }
 
 export const VolumeNode: React.FC<Props> = ({ data }) => (
-    <div className="px-4 py-3 shadow-md rounded-xl bg-white border border-orange-100 min-w-[200px]">
-        <div className="flex items-center space-x-3">
-            <div className="p-2 bg-orange-50 text-orange-500 rounded-lg shadow-sm">
+    <div className="px-4 py-3 shadow-md rounded-xl bg-white border border-orange-100 min-w-[200px] h-[80px] flex items-center">
+        <div className="flex items-center space-x-3 w-full">
+            <div className="p-2 bg-orange-50 text-orange-500 rounded-lg shadow-sm shrink-0">
                 <HardDrive size={18} />
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                     <div className="text-[9px] uppercase tracking-wider text-orange-400 font-bold truncate">{data.name || 'Volume'}</div>
-                    <div className="text-[9px] bg-orange-100 text-orange-700 px-1 rounded font-mono">{data.size || 0}MB</div>
+                    <div className="text-[9px] bg-orange-100 text-orange-700 px-1 rounded font-mono shrink-0">{data.size || 0}MB</div>
                 </div>
-                <div className="text-xs font-mono text-gray-600 truncate mt-1 bg-gray-50 p-1 rounded border border-gray-100">
+                <div className="text-[10px] font-mono text-gray-600 truncate mt-1 bg-gray-50 p-1 rounded border border-gray-100">
                     {data.mountPath || '/data'}
                 </div>
             </div>

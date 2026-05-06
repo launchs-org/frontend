@@ -20,12 +20,18 @@ import { DeleteTab } from './container-side-panel/DeleteTab';
 interface ContainerSidePanelProps {
     containerId: string;
     onClose: () => void;
+    initialTab?: SidebarTab;
 }
 
 type SidebarTab = 'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networking' | 'volumes' | 'env-vars' | 'delete';
 
-export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containerId, onClose }) => {
-    const [activeTab, setActiveTab] = useState<SidebarTab>('overview');
+export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containerId, onClose, initialTab }) => {
+    const [activeTab, setActiveTab] = useState<SidebarTab>(initialTab || 'overview');
+    
+    // Update activeTab when initialTab changes (e.g. from clicking another node)
+    useEffect(() => {
+        if (initialTab) setActiveTab(initialTab);
+    }, [initialTab]);
     const [container, setContainer] = useState<any>(null);
     const [buildJobs, setBuildJobs] = useState<any[]>([]);
     const [buildLogs, setBuildLogs] = useState<string[]>([]);

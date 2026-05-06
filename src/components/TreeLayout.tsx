@@ -11,6 +11,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { WorldNode }     from './nodes/WorldNode';
+import { CloudflareTunnelNode } from './nodes/CloudflareTunnelNode';
 import { IngressNode }   from './nodes/IngressNode';
 import { ServiceNode }   from './nodes/ServiceNode';
 import { ContainerNode } from './nodes/ContainerNode';
@@ -20,6 +21,7 @@ import type { ContainerItem } from './treeUtils';
 
 const nodeTypes: NodeTypes = {
     worldNode:     WorldNode,
+    cloudflareTunnelNode: CloudflareTunnelNode,
     ingressNode:   IngressNode,
     serviceNode:   ServiceNode,
     containerNode: ContainerNode,
@@ -29,7 +31,7 @@ const nodeTypes: NodeTypes = {
 interface Props {
     containers: ContainerItem[];
     selectedContainerId: string | null;
-    onContainerSelect: (id: string) => void;
+    onContainerSelect: (id: string, tab?: string) => void;
 }
 
 const TreeLayoutContent: React.FC<Props> = ({
@@ -46,15 +48,38 @@ const TreeLayoutContent: React.FC<Props> = ({
 
         return {
             nodes: flow.nodes.map((n) => {
-                if (n.type !== 'containerNode') return n;
-                return {
-                    ...n,
-                    data: {
-                        ...n.data,
-                        isSelected: isSelected(n.data.id as string),
-                        onSelect: onContainerSelect,
-                    },
-                };
+                const cid = (n.data as any)?.containerId || n.id;
+                
+                // For non-container nodes that belong to a container
+                const belongsToContainer = n.id.includes('-') ? n.id.split('-').pop() : null;
+                const targetCid = belongsToContainer || n.id;
+
+                if (n.type === 'containerNode') {
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            isSelected: isSelected(n.data.id as string),
+                            onSelect: (id: string) => onContainerSelect(id),
+                        },
+                    };
+                }
+
+                // Make Ingress and Service nodes clickable
+                if (n.type === 'ingressNode' || n.type === 'serviceNode') {
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            onSelect: () => {
+                                const containerId = n.id.split('-').pop();
+                                if (containerId) onContainerSelect(containerId, 'networking');
+                            }
+                        }
+                    };
+                }
+
+                return n;
             }),
             edges: flow.edges.map((e) => {
                 const cid = e.data?.containerId as string;
@@ -68,7 +93,6 @@ const TreeLayoutContent: React.FC<Props> = ({
 
                 return {
                     ...e,
-                    animated: !e.id.includes('vol'),
                     style: {
                         ...e.style,
                         stroke,
@@ -120,7 +144,7 @@ const TreeLayoutContent: React.FC<Props> = ({
                         {Object.entries(STATUS_STYLES).map(([key, val]) => (
                             <div key={key} className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: val.dot }} />
-                                <span className="text-[10px] font-mono text-gray-500">{key}</span>
+                                <span className="text-[10px] font-mono text-gray-500">{val.label}</span>
                             </div>
                         ))}
                     </div>

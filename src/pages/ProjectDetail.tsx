@@ -21,6 +21,7 @@ const ProjectDetail: React.FC = () => {
     const [showModal, setShowModal] = useState(false);
     const [creating, setCreating] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedTab, setSelectedTab] = useState<any>(undefined);
     const [formData, setFormData] = useState<CreateContainerFiles>(DEFAULT_FORM);
 
     const fetchData = useCallback(async (silent = false) => {
@@ -43,9 +44,15 @@ const ProjectDetail: React.FC = () => {
         return () => clearInterval(t);
     }, [fetchData]);
 
-    const handleContainerSelect = useCallback((cid: string) => {
-        setSelectedId(prev => prev === cid ? null : cid);
-    }, []);
+    const handleContainerSelect = useCallback((cid: string, tab?: any) => {
+        if (selectedId === cid && !tab) {
+            setSelectedId(null);
+            setSelectedTab(undefined);
+        } else {
+            setSelectedId(cid);
+            setSelectedTab(tab);
+        }
+    }, [selectedId]);
 
     const handleCreateContainer = async (evt: React.FormEvent) => {
         evt.preventDefault();
@@ -123,7 +130,11 @@ const ProjectDetail: React.FC = () => {
                                 <div className="h-full border-l border-gray-50 overflow-hidden w-full">
                                     <ContainerSidePanel
                                         containerId={selectedId}
-                                        onClose={() => setSelectedId(null)}
+                                        initialTab={selectedTab}
+                                        onClose={() => {
+                                            setSelectedId(null);
+                                            setSelectedTab(undefined);
+                                        }}
                                     />
                                 </div>
                             </ResizablePanel>

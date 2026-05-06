@@ -21,8 +21,6 @@ export const DeleteTab: React.FC<DeleteTabProps> = ({ containerId, containerName
             await containerService.deleteContainer(containerId);
             alert('コンテナを削除しました。');
             onClose();
-            // 親コンポーネント側でのリロードが必要な場合はイベントを発生させる等の対応が必要
-            window.location.reload(); // 簡易的にリロード
         } catch (err) {
             console.error(err);
             alert('削除に失敗しました。');
