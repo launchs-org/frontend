@@ -1,4 +1,3 @@
-import React from 'react';
 import { Handle, Position } from '@xyflow/react';;
 import { Box, Database, Folder, GitBranch, ChevronRight, RefreshCw } from 'lucide-react';
 import { cn } from '../../lib/utils';

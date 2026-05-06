@@ -29,6 +29,9 @@ export const containerService = {
     redeployContainer: (containerId: string) =>
         api.post(`/app/v1/containers/${containerId}/redeploy`),
 
+    deleteContainer: (containerId: string) =>
+        api.delete(`/app/v1/containers/${containerId}`),
+
     // ビルドジョブ関連
     getBuildJobs: (containerId: string) =>
         api.get(`/app/v1/containers/${containerId}/build-jobs`),
