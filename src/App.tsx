@@ -2,12 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { User, Loader2 } from 'lucide-react';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
-import ContainerDetail from './pages/ContainerDetail';
-import History from './pages/History';
-import Monitoring from './pages/Monitoring';
 import { api } from './lib/api';
 
 const App: React.FC = () => {

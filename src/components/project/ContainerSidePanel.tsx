@@ -35,8 +35,6 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     const [isSavingEnv, setIsSavingEnv] = useState(false);
     const [customDomain, setCustomDomain] = useState('');
     const [customDomainEnabled, setCustomDomainEnabled] = useState(true);
-    const [streamingBuild, setStreamingBuild] = useState(false);
-    const [streamingExec, setStreamingExec] = useState(false);
     const [selectedBuildJobId, setSelectedBuildJobId] = useState<string | null>(null);
     const [volumes, setVolumes] = useState<any[]>([]);
 
@@ -124,16 +122,14 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
             const isFinished = ['Success', 'Failed', 'Cancelled', 'Succeeded', 'Complete'].includes(selectedJob?.status);
 
             if (isFinished) {
-                setStreamingBuild(false);
                 containerService.getBuildLogs(selectedBuildJobId)
                     .then(res => setBuildLogs(res.data.data.log?.split('\n') || []));
             } else {
-                setStreamingBuild(true);
                 wsRef.current = logStreamService.startBuildLogStream(
                     selectedBuildJobId,
                     (log) => setBuildLogs(prev => [...prev, ...log.split('\n')]),
-                    () => { setStreamingBuild(false); fetchBuildJobs(); },
-                    setStreamingBuild
+                    () => { fetchBuildJobs(); },
+                    () => {} // empty setter
                 );
             }
         }
@@ -145,11 +141,10 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
         if (activeTab === 'exec-logs') {
             execWsRef.current?.close();
             setExecLogs([]);
-            setStreamingExec(true);
             execWsRef.current = logStreamService.startExecLogStream(
                 containerId,
                 (entry) => setExecLogs(prev => [...prev, entry]),
-                setStreamingExec
+                () => {} // empty setter
             );
         }
         return () => execWsRef.current?.close();
