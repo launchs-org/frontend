@@ -102,7 +102,7 @@ const ContainerDetail: React.FC = () => {
         return acc;
       }, {} as any);
 
-      await api.patch(`/app/v1/projects/${project.id}/env-vars`, {
+      await api.patch(`/app/v1/projects/${project.id}`, {
         env_vars: JSON.stringify(envObj)
       });
       

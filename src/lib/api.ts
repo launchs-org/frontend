@@ -35,7 +35,7 @@ const REFRESH_PATH = import.meta.env.VITE_API_REFRESH_PATH || '/auth/token';
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   // Always send credentials
   config.withCredentials = true;
-
+  
   // If useRefreshToken is true, use refresh token
   if (config.useRefreshToken) {
     const refreshToken = getRefreshToken();
