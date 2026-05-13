@@ -44,6 +44,7 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     const [selectedBuildJobId, setSelectedBuildJobId] = useState<string | null>(null);
     const [volumes, setVolumes] = useState<any[]>([]);
 
+    const [execLogConnected, setExecLogConnected] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
     const execWsRef = useRef<WebSocket | null>(null);
     const buildLogEndRef = useRef<HTMLDivElement>(null);
@@ -147,13 +148,19 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
         if (activeTab === 'exec-logs') {
             execWsRef.current?.close();
             setExecLogs([]);
-            execWsRef.current = logStreamService.startExecLogStream(
+            setExecLogConnected(false);
+            const ws = logStreamService.startExecLogStream(
                 containerId,
                 (entry) => setExecLogs(prev => [...prev, entry]),
-                () => {} // empty setter
+                (active) => setExecLogConnected(active)
             );
+            ws.onopen = () => setExecLogConnected(true);
+            execWsRef.current = ws;
         }
-        return () => execWsRef.current?.close();
+        return () => {
+            execWsRef.current?.close();
+            setExecLogConnected(false);
+        };
     }, [containerId, activeTab]);
 
     const handleSaveEnvVars = async () => {
@@ -266,6 +273,7 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
                     <ExecLogsTab
                         execLogs={execLogs}
                         execLogEndRef={execLogEndRef}
+                        connected={execLogConnected}
                     />
                 )}
 

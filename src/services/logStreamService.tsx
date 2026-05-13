@@ -34,7 +34,7 @@ export const logStreamService = {
     },
 
     startExecLogStream: (containerId: string, onLog: (entry: any) => void, onError: StatusCallback) => {
-        const ws = logStreamService.createWebSocket(`/app/v1/ws/containers/${containerId}/logs`);
+        const ws = logStreamService.createWebSocket(`/app/v1/containers/${containerId}/logs`);
 
         ws.onmessage = (event) => {
             try {
