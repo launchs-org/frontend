@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
 import {
   Plus,
@@ -17,7 +17,14 @@ interface Project {
   name: string;
   namespace: string;
   k8s_resource_name: string;
+  status: string;
 }
+
+const STATUS_CONFIG: Record<string, { label: string; badgeClass: string; pulse: boolean }> = {
+  Pending:  { label: '準備中',  badgeClass: 'bg-yellow-100 text-yellow-800', pulse: true },
+  Running:  { label: '稼働中',  badgeClass: 'bg-green-100 text-green-800',  pulse: false },
+  Deleting: { label: '削除中',  badgeClass: 'bg-red-100 text-red-700',     pulse: true },
+};
 
 const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -26,26 +33,28 @@ const Projects: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  // New project form state
-  const [formData, setFormData] = useState({
-    name: ''
-  });
+  const [formData, setFormData] = useState({ name: '' });
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await api.get('/app/v1/projects');
       setProjects(response.data.data.items || []);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    const t = setInterval(() => fetchProjects(true), 5000);
+    return () => clearInterval(t);
+  }, [fetchProjects]);
 
   const handleCreateProject = async (evt: React.FormEvent) => {
     evt.preventDefault();
@@ -54,7 +63,7 @@ const Projects: React.FC = () => {
       await api.post('/app/v1/projects', formData);
       setShowModal(false);
       setFormData({ name: '' });
-      fetchProjects();
+      fetchProjects(true);
     } catch (error) {
       console.error('Failed to create project:', error);
       alert('プロジェクトの作成に失敗しました。プロジェクト名は英小文字、数字、ハイフンのみ使用可能です。');
@@ -71,7 +80,7 @@ const Projects: React.FC = () => {
 
     try {
       await api.delete(`/app/v1/projects/${id}`);
-      fetchProjects();
+      fetchProjects(true);
     } catch (error) {
       console.error('Failed to delete project:', error);
       alert('プロジェクトの削除に失敗しました。');
@@ -82,11 +91,11 @@ const Projects: React.FC = () => {
 
   const handleInputChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = evt.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  const isDisabled = (project: Project) =>
+    project.status === 'Pending' || project.status === 'Deleting';
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
@@ -126,56 +135,84 @@ const Projects: React.FC = () => {
             <p className="text-[#5f6368]">プロジェクトがまだありません。新しいプロジェクトを作成してください。</p>
           </div>
         ) : (
-          projects.map((project) => (
-            <Link
-              key={project.id}
-              to={`/projects/${project.id}`}
-              className="google-card p-6 hover:shadow-lg transition-all group border-transparent hover:border-google-blue/20 relative"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="p-3 bg-blue-50 text-google-blue rounded-xl group-hover:bg-google-blue group-hover:text-white transition-colors">
-                  <Folder size={24} />
+          projects.map((project) => {
+            const statusConfig = STATUS_CONFIG[project.status] ?? { label: project.status, badgeClass: 'bg-gray-100 text-gray-500', pulse: false };
+            const disabled = isDisabled(project);
+
+            const cardContent = (
+              <div
+                className={`google-card p-6 transition-all group border-transparent relative ${
+                  disabled
+                    ? 'opacity-70 cursor-not-allowed'
+                    : 'hover:shadow-lg hover:border-google-blue/20 cursor-pointer'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-6">
+                  <div className={`p-3 rounded-xl transition-colors ${
+                    disabled
+                      ? 'bg-gray-100 text-gray-400'
+                      : 'bg-blue-50 text-google-blue group-hover:bg-google-blue group-hover:text-white'
+                  }`}>
+                    <Folder size={24} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusConfig.badgeClass}`}>
+                      {statusConfig.pulse && <Loader2 size={10} className="animate-spin" />}
+                      {statusConfig.label}
+                    </span>
+                    {!disabled && (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === project.id ? null : project.id);
+                          }}
+                          className="p-2 text-[#5f6368] hover:bg-gray-100 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                        {openMenuId === project.id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl border border-gray-100 z-10 py-1 animate-in fade-in zoom-in duration-200">
+                            <button
+                              onClick={(e) => handleDeleteProject(e, project.id, project.name)}
+                              className="w-full text-left px-4 py-2 text-sm text-google-red hover:bg-red-50 flex items-center space-x-2 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                              <span>プロジェクトを削除</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="relative">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setOpenMenuId(openMenuId === project.id ? null : project.id);
-                    }}
-                    className="p-2 text-[#5f6368] hover:bg-gray-100 rounded-full transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <MoreVertical size={18} />
-                  </button>
-                  {openMenuId === project.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl border border-gray-100 z-10 py-1 animate-in fade-in zoom-in duration-200">
-                      <button
-                        onClick={(e) => handleDeleteProject(e, project.id, project.name)}
-                        className="w-full text-left px-4 py-2 text-sm text-google-red hover:bg-red-50 flex items-center space-x-2 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                        <span>プロジェクトを削除</span>
-                      </button>
-                    </div>
-                  )}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className={`text-lg font-medium transition-colors ${
+                      disabled ? 'text-gray-400' : 'text-[#202124] group-hover:text-google-blue'
+                    }`}>{project.name}</h3>
+                    <p className="text-xs text-[#5f6368] mt-1 truncate">ネームスペース: {project.namespace}</p>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-[#f1f3f4]">
+                    <span className="text-[10px] font-bold text-[#5f6368] uppercase tracking-wider truncate mr-2">リソース名: {project.k8s_resource_name}</span>
+                    <ChevronRight size={18} className={`transition-all shrink-0 ${disabled ? 'text-gray-200' : 'text-gray-300 group-hover:text-google-blue'}`} />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium text-[#202124] group-hover:text-google-blue transition-colors">{project.name}</h3>
-                  <p className="text-xs text-[#5f6368] mt-1 truncate">ネームスペース: {project.namespace}</p>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-[#f1f3f4]">
-                  <span className="text-[10px] font-bold text-[#5f6368] uppercase tracking-wider truncate mr-2">リソース名: {project.k8s_resource_name}</span>
-                  <ChevronRight size={18} className="text-gray-300 group-hover:text-google-blue transition-all shrink-0" />
-                </div>
-              </div>
-            </Link>
-          ))
+            );
+
+            return disabled ? (
+              <div key={project.id}>{cardContent}</div>
+            ) : (
+              <Link key={project.id} to={`/projects/${project.id}`}>
+                {cardContent}
+              </Link>
+            );
+          })
         )}
       </div>
 
-      {/* New Project Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in duration-300 overflow-hidden">
@@ -235,4 +272,3 @@ const Projects: React.FC = () => {
 };
 
 export default Projects;
-
