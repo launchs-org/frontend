@@ -22,7 +22,7 @@ export const ProjectNode = ({ data }: any) => (
 
 export const ContainerNode = ({ data }: any) => {
     const isRunning = data.status === 'Running';
-    const isTransitional = ['Building', 'Deploying', 'Queued'].includes(data.status);
+    const isTransitional = ['Building', 'Deploying', 'Redeploying', 'Queued'].includes(data.status);
     const isSelected = data.isSelected;
 
     return (

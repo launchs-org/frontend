@@ -20,7 +20,7 @@ interface Props {
 
 export const ContainerNode: React.FC<Props> = ({ data }) => {
     const isRunning = data.status === 'Running';
-    const isTransitional = ['Building', 'Deploying', 'Queued', 'Pending'].includes(data.status || '');
+    const isTransitional = ['Building', 'Deploying', 'Redeploying', 'Queued', 'Pending'].includes(data.status || '');
     const isSelected = data.isSelected;
     const statusInfo = STATUS_STYLES[data.status as keyof typeof STATUS_STYLES] || STATUS_STYLES.Unknown;
 

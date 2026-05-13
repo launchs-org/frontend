@@ -156,7 +156,7 @@ const ContainerDetail: React.FC = () => {
   // Poll container status if it's building or deploying
   useEffect(() => {
     let interval: any;
-    const isTransitional = container?.status === 'Building' || container?.status === 'Deploying';
+    const isTransitional = ['Building', 'Deploying', 'Redeploying'].includes(container?.status ?? '');
     
     if (isTransitional) {
       interval = setInterval(() => {
