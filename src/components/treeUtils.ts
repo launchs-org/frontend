@@ -22,8 +22,8 @@ export interface ContainerItem {
     branch?: string;
     version?: string;
     replicas?: number;
-    ingress?: { subdomain?: string };
-    service?: { type?: string; ports?: any, is_active?: boolean,internal_ip?: string, external_ip?: string };
+    ingress?: { subdomain?: string; status?: string };
+    service?: { type?: string; ports?: any; is_active?: boolean; internal_ip?: string; external_ip?: string; status?: string };
     volumes?: { id: string; name?: string; mount_path?: string; size_mb?: number }[];
 }
 
@@ -70,7 +70,7 @@ export function buildFlow(containers: ContainerItem[]): { nodes: Node[]; edges: 
             nodes.push({
                 id: nid, type: 'ingressNode',
                 position: { x: COL_INGRESS, y: cyCenter - 40 },
-                data: { subdomain: c.ingress.subdomain },
+                data: { subdomain: c.ingress.subdomain, status: c.ingress.status },
             });
             edges.push(edge(`e-cf-${nid}`, 'cf-tunnel', nid, false, c.id));
             prevId = nid;
@@ -81,7 +81,7 @@ export function buildFlow(containers: ContainerItem[]): { nodes: Node[]; edges: 
             nodes.push({
                 id: nid, type: 'serviceNode',
                 position: { x: COL_SERVICE, y: cyCenter - 40 },
-                data: { type: c.service.type, ports: c.service.ports, internal_ip: c.service.internal_ip, external_ip: c.service.external_ip },
+                data: { type: c.service.type, ports: c.service.ports, internal_ip: c.service.internal_ip, external_ip: c.service.external_ip, status: c.service.status, is_active: c.service.is_active },
             });
             if (prevId) {
                 edges.push(edge(`e-${prevId}-${nid}`, prevId, nid, false, c.id));

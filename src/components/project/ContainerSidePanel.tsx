@@ -19,24 +19,24 @@ import { DeleteTab } from './container-side-panel/DeleteTab';
 
 interface ContainerSidePanelProps {
     containerId: string;
+    containerData?: any;
     onClose: () => void;
     initialTab?: SidebarTab;
 }
 
 type SidebarTab = 'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networking' | 'volumes' | 'env-vars' | 'delete';
 
-export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containerId, onClose, initialTab }) => {
+export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containerId, containerData, onClose, initialTab }) => {
     const [activeTab, setActiveTab] = useState<SidebarTab>(initialTab || 'overview');
-    
+
     // Update activeTab when initialTab changes (e.g. from clicking another node)
     useEffect(() => {
         if (initialTab) setActiveTab(initialTab);
     }, [initialTab]);
-    const [container, setContainer] = useState<any>(null);
+    const [container, setContainer] = useState<any>(containerData ?? null);
     const [buildJobs, setBuildJobs] = useState<any[]>([]);
     const [buildLogs, setBuildLogs] = useState<string[]>([]);
     const [execLogs, setExecLogs] = useState<any[]>([]);
-    const [project, setProject] = useState<any>(null);
     const [envVars, setEnvVars] = useState<{ key: string; value: string }[]>([]);
     const [isSavingEnv, setIsSavingEnv] = useState(false);
     const [customDomain, setCustomDomain] = useState('');
@@ -68,12 +68,8 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
                 setCustomDomainEnabled(data.ingress.custom_domain_enabled);
             }
 
-            // プロジェクトの情報を取得
-            const projRes = await containerService.getProject(data.project_id);
-            const projData = projRes.data.data;
-            setProject(projData);
             try {
-                const vars = JSON.parse(projData.env_vars || '{}');
+                const vars = JSON.parse(data.env_vars || '{}');
                 setEnvVars(Object.entries(vars).map(([key, value]) => ({ key, value: String(value) })));
             } catch { setEnvVars([]); }
         } catch (err) { console.error(err); }
@@ -97,6 +93,12 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     };
 
     useEffect(() => { fetchData(); }, [containerId]);
+
+    // ProjectDetail のポーリングデータを常に反映する
+    useEffect(() => {
+        if (!containerData) return;
+        setContainer(containerData);
+    }, [containerData]);
 
     // Polling for builds when builds tab is active
     useEffect(() => {
@@ -164,15 +166,13 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     }, [containerId, activeTab]);
 
     const handleSaveEnvVars = async () => {
-        if (!project) return;
         setIsSavingEnv(true);
         try {
             const envObj = envVars.reduce((acc, { key, value }) => {
                 if (key.trim()) acc[key.trim()] = value;
                 return acc;
             }, {} as Record<string, string>);
-            await containerService.updateProjectEnvVars(project.id, JSON.stringify(envObj));
-            alert('環境変数を保存しました。反映には再ビルドが必要です。');
+            await containerService.updateContainerEnvVars(containerId, JSON.stringify(envObj));
             fetchData();
         } catch (err) { alert('保存に失敗しました。'); }
         finally { setIsSavingEnv(false); }

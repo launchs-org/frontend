@@ -40,7 +40,7 @@ const ProjectDetail: React.FC = () => {
 
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {
-        const t = setInterval(() => fetchData(true), 1500);
+        const t = setInterval(() => fetchData(true), 3000);
         return () => clearInterval(t);
     }, [fetchData]);
 
@@ -130,6 +130,7 @@ const ProjectDetail: React.FC = () => {
                                 <div className="h-full border-l border-gray-50 overflow-hidden w-full">
                                     <ContainerSidePanel
                                         containerId={selectedId}
+                                        containerData={containers.find(c => c.id === selectedId) ?? null}
                                         initialTab={selectedTab}
                                         onClose={() => {
                                             setSelectedId(null);

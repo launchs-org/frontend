@@ -13,8 +13,8 @@ export const containerService = {
     getProject: (projectId: string) =>
         api.get(`/app/v1/projects/${projectId}`),
 
-    updateProjectEnvVars: (projectId: string, envVars: string) =>
-        api.patch(`/app/v1/projects/${projectId}/env-vars`, { env_vars: envVars }),
+    updateContainerEnvVars: (containerId: string, envVars: string) =>
+        api.patch(`/app/v1/containers/${containerId}/env-vars`, { env_vars: envVars }),
 
     // コンテナ関連
     getContainer: (containerId: string) =>

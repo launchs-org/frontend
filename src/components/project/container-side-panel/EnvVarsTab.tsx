@@ -68,7 +68,7 @@ export const EnvVarsTab: React.FC<EnvVarsTabProps> = ({
                 </button>
                 <div className="mt-3 p-2 bg-blue-50 border border-blue-100 rounded text-[12px] text-blue-600 flex gap-2">
                     <Info size={12} className="shrink-0" />
-                    <span>保存後、再ビルドを実行してください。</span>
+                    <span>保存後、再デプロイを実行してください。</span>
                 </div>
             </div>
         </div>
