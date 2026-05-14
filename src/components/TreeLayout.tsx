@@ -48,12 +48,6 @@ const TreeLayoutContent: React.FC<Props> = ({
 
         return {
             nodes: flow.nodes.map((n) => {
-                const cid = (n.data as any)?.containerId || n.id;
-                
-                // For non-container nodes that belong to a container
-                const belongsToContainer = n.id.includes('-') ? n.id.split('-').pop() : null;
-                const targetCid = belongsToContainer || n.id;
-
                 if (n.type === 'containerNode') {
                     return {
                         ...n,
