@@ -8,7 +8,7 @@ interface Props {
 
 export const ServiceNode: React.FC<Props> = ({ data }) => {
     const isPending  = data.status === 'pending' && data.is_active === true;
-    const isDeleting = data.status === 'pending' && data.is_active === false;
+    const isDeleting = data.status === 'deleting';
 
     let ports = [];
     try {

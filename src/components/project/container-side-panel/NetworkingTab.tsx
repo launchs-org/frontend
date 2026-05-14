@@ -40,7 +40,7 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
     }, [svc?.ports]);
 
     const isServicePending  = svc?.status === 'pending' && svc?.is_active === true;
-    const isServiceDeleting = svc?.status === 'pending' && svc?.is_active === false;
+    const isServiceDeleting = svc?.status === 'deleting';
     const isIngressPending  = container?.ingress?.status === 'pending';
 
     return (
