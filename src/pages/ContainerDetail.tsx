@@ -45,6 +45,7 @@ const ContainerDetail: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networking' | 'volumes' | 'env-vars'>('overview');
   const [container, setContainer] = useState<any>(null);
+  const [pods, setPods] = useState<any[]>([]);
   const [buildJobs, setBuildJobs] = useState<BuildJob[]>([]);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const [execLogs, setExecLogs] = useState<LogEntry[]>([]);
@@ -69,8 +70,9 @@ const ContainerDetail: React.FC = () => {
   const fetchContainer = async () => {
     try {
       const res = await api.get(`/app/v1/containers/${id}`);
-      const data = res.data.data;
+      const { container: data, pods: podList } = res.data.data;
       setContainer(data);
+      setPods(podList ?? []);
       if (data.ingress) {
         setCustomDomain(data.ingress.custom_domain || '');
         setCustomDomainEnabled(data.ingress.custom_domain_enabled);
@@ -156,7 +158,7 @@ const ContainerDetail: React.FC = () => {
   // Poll container status if it's building or deploying
   useEffect(() => {
     let interval: any;
-    const isTransitional = ['Building', 'Deploying', 'Redeploying'].includes(container?.status ?? '');
+    const isTransitional = ['Building', 'Deploying', 'Redeploying', 'Scaling'].includes(container?.status ?? '');
     
     if (isTransitional) {
       interval = setInterval(() => {
@@ -506,6 +508,47 @@ const ContainerDetail: React.FC = () => {
                   <span className="text-xs font-medium">{container?.status === 'Running' ? '正常に稼働中' : container?.status}</span>
                 </div>
               </div>
+
+              {pods.length > 0 && (
+                <div className="google-card p-6 space-y-4">
+                  <h4 className="text-sm font-medium text-[#202124] flex items-center space-x-2">
+                    <Database size={18} className="text-google-blue" />
+                    <span>Pod ステータス</span>
+                    <span className="text-xs text-[#5f6368] font-normal">({pods.length} pods)</span>
+                  </h4>
+                  <div className="space-y-2">
+                    {pods.map((pod: any) => (
+                      <div key={pod.id} className="flex items-center justify-between p-3 bg-[#f8f9fa] rounded-lg border border-[#dadce0]">
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full shrink-0",
+                            pod.phase === 'Running' && pod.ready ? "bg-green-500" :
+                            pod.phase === 'Pending' ? "bg-yellow-400" :
+                            pod.phase === 'Failed' ? "bg-red-500" : "bg-gray-400"
+                          )} />
+                          <span className="text-xs font-mono text-[#202124] truncate">{pod.name}</span>
+                        </div>
+                        <div className="flex items-center space-x-3 shrink-0 ml-2">
+                          {pod.restarts > 0 && (
+                            <span className="text-[10px] text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
+                              再起動 {pod.restarts}回
+                            </span>
+                          )}
+                          <span className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
+                            pod.phase === 'Running' && pod.ready ? "bg-green-100 text-green-700" :
+                            pod.phase === 'Pending' ? "bg-yellow-100 text-yellow-700" :
+                            pod.phase === 'Failed' ? "bg-red-100 text-red-700" :
+                            "bg-gray-100 text-gray-500"
+                          )}>
+                            {pod.phase === 'Running' && pod.ready ? 'Ready' : pod.phase}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">

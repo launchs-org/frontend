@@ -34,6 +34,7 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
         if (initialTab) setActiveTab(initialTab);
     }, [initialTab]);
     const [container, setContainer] = useState<any>(containerData ?? null);
+    const [pods, setPods] = useState<any[]>([]);
     const [buildJobs, setBuildJobs] = useState<any[]>([]);
     const [buildLogs, setBuildLogs] = useState<string[]>([]);
     const [execLogs, setExecLogs] = useState<any[]>([]);
@@ -56,13 +57,11 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
             // コンテナ情報
             const res = await containerService.getContainer(containerId);
 
-            // コンテナ情報
-            const data = res.data.data;
+            const { container: data, pods: podList } = res.data.data;
 
-            // コンテナ情報 を設定
             setContainer(data);
+            setPods(podList ?? []);
 
-            // ingress がある場合表示
             if (data.ingress) {
                 setCustomDomain(data.ingress.custom_domain || '');
                 setCustomDomainEnabled(data.ingress.custom_domain_enabled);
@@ -98,6 +97,7 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     useEffect(() => {
         if (!containerData) return;
         setContainer(containerData);
+        setPods(containerData.pods ?? []);
     }, [containerData]);
 
     // Polling for builds when builds tab is active
@@ -227,7 +227,7 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto">
-                {activeTab === 'overview' && <OverviewTab container={container} />}
+                {activeTab === 'overview' && <OverviewTab container={container} pods={pods} onScaled={fetchData} />}
 
                 {activeTab === 'networking' && (
                     <NetworkingTab
