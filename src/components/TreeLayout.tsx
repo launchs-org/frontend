@@ -10,22 +10,24 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { WorldNode }     from './nodes/WorldNode';
+import { WorldNode }          from './nodes/WorldNode';
 import { CloudflareTunnelNode } from './nodes/CloudflareTunnelNode';
-import { IngressNode }   from './nodes/IngressNode';
-import { ServiceNode }   from './nodes/ServiceNode';
-import { ContainerNode } from './nodes/ContainerNode';
-import { VolumeNode }    from './nodes/VolumeNode';
+import { IngressNode }          from './nodes/IngressNode';
+import { ServiceNode }          from './nodes/ServiceNode';
+import { ContainerNode }        from './nodes/ContainerNode';
+import { VolumeNode }           from './nodes/VolumeNode';
+import { PodGroupNode }         from './nodes/PodGroupNode';
 import { buildFlow, STATUS_STYLES } from './treeUtils';
 import type { ContainerItem } from './treeUtils';
 
 const nodeTypes: NodeTypes = {
-    worldNode:     WorldNode,
+    worldNode:          WorldNode,
     cloudflareTunnelNode: CloudflareTunnelNode,
-    ingressNode:   IngressNode,
-    serviceNode:   ServiceNode,
-    containerNode: ContainerNode,
-    volumeNode:    VolumeNode,
+    ingressNode:        IngressNode,
+    serviceNode:        ServiceNode,
+    containerNode:      ContainerNode,
+    volumeNode:         VolumeNode,
+    podGroupNode:       PodGroupNode,
 };
 
 interface Props {
@@ -59,6 +61,16 @@ const TreeLayoutContent: React.FC<Props> = ({
                     };
                 }
 
+                if (n.type === 'podGroupNode') {
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            isSelected: isSelected(n.id.replace('group-', '')),
+                        },
+                    };
+                }
+
                 // Make Ingress and Service nodes clickable
                 if (n.type === 'ingressNode' || n.type === 'serviceNode') {
                     return {
@@ -77,6 +89,7 @@ const TreeLayoutContent: React.FC<Props> = ({
             }),
             edges: flow.edges.map((e) => {
                 const cid = e.data?.containerId as string;
+                // group-xxx edges use the container id embedded in containerId
                 if (!cid || !isSelected(cid)) return e;
 
                 // Highlight selected path
