@@ -10,6 +10,10 @@ export default defineConfig({
     watch: {
       usePolling: true
     },
-    allowedHosts: ["test.launchs.org"]
+    allowedHosts: ["test.launchs.org"],
+    hmr: {
+      // nginx経由でアクセスされる外部ポートに合わせる
+      clientPort: 8950,
+    }
   }
 })
