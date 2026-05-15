@@ -9,7 +9,7 @@ import { DeployModal } from '../components/project/DeployModal';
 import { TreeLayout } from '../components/TreeLayout';
 
 const DEFAULT_FORM: CreateContainerFiles = {
-    name: '', repository_url: '', branch: 'main', directory: '.', replicas: 1,
+    name: '', repository_url: '', branch: '', directory: '',
 };
 
 const ProjectDetail: React.FC = () => {

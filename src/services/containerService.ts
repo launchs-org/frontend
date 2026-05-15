@@ -5,7 +5,6 @@ export interface CreateContainerFiles {
     repository_url: string;
     branch: string;
     directory: string;
-    replicas: number;
 }
 
 export const containerService = {
@@ -61,4 +60,7 @@ export const containerService = {
 
     deleteVolume: (volumeId: string) =>
         api.delete(`/app/v1/volumes/${volumeId}`),
+
+    scaleContainer: (containerId: string, replicas: number) =>
+        api.post(`/app/v1/containers/${containerId}/scale`, { replicas }),
 };
