@@ -50,6 +50,7 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     const execWsRef = useRef<WebSocket | null>(null);
     const buildLogEndRef = useRef<HTMLDivElement>(null);
     const execLogEndRef = useRef<HTMLDivElement>(null);
+    const buildJobsRef = useRef<any[]>([]);
 
     // 選択されたコンテナの情報を取得する
     const fetchData = async () => {
@@ -80,6 +81,7 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
             const res = await containerService.getBuildJobs(containerId);
             const jobs = res.data.data.items || [];
             setBuildJobs(jobs);
+            buildJobsRef.current = jobs;
             if (!selectedBuildJobId && jobs.length > 0) setSelectedBuildJobId(jobs[0].id);
         } catch (err) { console.error(err); }
     };
@@ -139,18 +141,15 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
 
         setBuildLogs([]);
         fetchBuildLogs(selectedBuildJobId);
-    }, [selectedBuildJobId, activeTab]);
 
-    useEffect(() => {
-        if (!selectedBuildJobId || activeTab !== 'build-logs') return;
-
-        const selectedJob = buildJobs.find(j => j.id === selectedBuildJobId);
-        const isActive = selectedJob && (selectedJob.status === 'Queued' || selectedJob.status === 'Running');
-        if (!isActive) return;
-
-        const interval = setInterval(() => fetchBuildLogs(selectedBuildJobId), 3000);
+        const interval = setInterval(() => {
+            const job = buildJobsRef.current.find(j => j.id === selectedBuildJobId);
+            if (job && (job.status === 'Queued' || job.status === 'Running' || job.status === 'Building')) {
+                fetchBuildLogs(selectedBuildJobId);
+            }
+        }, 3000);
         return () => clearInterval(interval);
-    }, [selectedBuildJobId, activeTab, buildJobs]);
+    }, [selectedBuildJobId, activeTab]);
 
     // Exec Logs Streaming Logic
     useEffect(() => {

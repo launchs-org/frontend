@@ -64,6 +64,7 @@ const ContainerDetail: React.FC = () => {
   const buildLogContainerRef = useRef<HTMLDivElement>(null);
   const execLogContainerRef = useRef<HTMLDivElement>(null);
   const execSseRef = useRef<AbortController | null>(null);
+  const buildJobsRef = useRef<BuildJob[]>([]);
 
   const fetchContainer = async () => {
     try {
@@ -121,6 +122,7 @@ const ContainerDetail: React.FC = () => {
       const res = await api.get(`/app/v1/containers/${id}/build-jobs`);
       const jobs = res.data.data.items || [];
       setBuildJobs(jobs);
+      buildJobsRef.current = jobs;
       if (!selectedBuildJobId && jobs.length > 0) {
         setSelectedBuildJobId(jobs[0].id);
       }
@@ -199,18 +201,15 @@ const ContainerDetail: React.FC = () => {
 
     setBuildLogs([]);
     fetchBuildLogs(selectedBuildJobId);
-  }, [selectedBuildJobId, activeTab]);
 
-  useEffect(() => {
-    if (!selectedBuildJobId || activeTab !== 'build-logs') return;
-
-    const selectedJob = buildJobs.find(j => j.id === selectedBuildJobId);
-    const isActive = selectedJob && (selectedJob.status === 'Queued' || selectedJob.status === 'Running');
-    if (!isActive) return;
-
-    const interval = setInterval(() => fetchBuildLogs(selectedBuildJobId), 3000);
+    const interval = setInterval(() => {
+      const job = buildJobsRef.current.find(j => j.id === selectedBuildJobId);
+      if (job && (job.status === 'Queued' || job.status === 'Running' || job.status === 'Building')) {
+        fetchBuildLogs(selectedBuildJobId);
+      }
+    }, 3000);
     return () => clearInterval(interval);
-  }, [selectedBuildJobId, activeTab, buildJobs]);
+  }, [selectedBuildJobId, activeTab]);
 
   useEffect(() => {
     if (activeTab === 'exec-logs') {
