@@ -9,6 +9,7 @@ declare module 'axios' {
 
 export const api = axios.create({
   baseURL: '', // Always empty, use absolute or full paths
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
