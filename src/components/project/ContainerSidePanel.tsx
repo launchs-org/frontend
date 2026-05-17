@@ -45,8 +45,8 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     const [selectedBuildJobId, setSelectedBuildJobId] = useState<string | null>(null);
     const [volumes, setVolumes] = useState<any[]>([]);
 
+    const [loadingBuildLogs, setLoadingBuildLogs] = useState(false);
     const [execLogConnected, setExecLogConnected] = useState(false);
-    const wsRef = useRef<WebSocket | null>(null);
     const execWsRef = useRef<WebSocket | null>(null);
     const buildLogEndRef = useRef<HTMLDivElement>(null);
     const execLogEndRef = useRef<HTMLDivElement>(null);
@@ -122,28 +122,35 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
         if (activeTab === 'exec-logs') execLogEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [execLogs, activeTab]);
 
-    // Build Logs Streaming Logic
-    useEffect(() => {
-        if (selectedBuildJobId && activeTab === 'build-logs') {
-            wsRef.current?.close();
-            setBuildLogs([]);
-            const selectedJob = buildJobs.find(j => j.id === selectedBuildJobId);
-            const isFinished = ['Success', 'Failed', 'Cancelled', 'Succeeded', 'Complete'].includes(selectedJob?.status);
+    const fetchBuildLogs = (jobId: string) => {
+        setLoadingBuildLogs(true);
+        containerService.getBuildLogs(jobId)
+            .then(res => {
+                const log = res.data.data.log;
+                setBuildLogs(log ? log.split('\n').filter((l: string) => l.trim() !== '') : []);
+            })
+            .catch(err => console.error('Failed to fetch build logs', err))
+            .finally(() => setLoadingBuildLogs(false));
+    };
 
-            if (isFinished) {
-                containerService.getBuildLogs(selectedBuildJobId)
-                    .then(res => setBuildLogs(res.data.data.log?.split('\n') || []));
-            } else {
-                wsRef.current = logStreamService.startBuildLogStream(
-                    selectedBuildJobId,
-                    (log) => setBuildLogs(prev => [...prev, ...log.split('\n')]),
-                    () => { fetchBuildJobs(); },
-                    () => {} // empty setter
-                );
-            }
-        }
-        return () => wsRef.current?.close();
+    // Build Logs Polling Logic
+    useEffect(() => {
+        if (!selectedBuildJobId || activeTab !== 'build-logs') return;
+
+        setBuildLogs([]);
+        fetchBuildLogs(selectedBuildJobId);
     }, [selectedBuildJobId, activeTab]);
+
+    useEffect(() => {
+        if (!selectedBuildJobId || activeTab !== 'build-logs') return;
+
+        const selectedJob = buildJobs.find(j => j.id === selectedBuildJobId);
+        const isActive = selectedJob && (selectedJob.status === 'Queued' || selectedJob.status === 'Running');
+        if (!isActive) return;
+
+        const interval = setInterval(() => fetchBuildLogs(selectedBuildJobId), 3000);
+        return () => clearInterval(interval);
+    }, [selectedBuildJobId, activeTab, buildJobs]);
 
     // Exec Logs Streaming Logic
     useEffect(() => {
@@ -265,6 +272,7 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
                         selectedBuildJobId={selectedBuildJobId}
                         setSelectedBuildJobId={setSelectedBuildJobId}
                         buildLogs={buildLogs}
+                        loadingBuildLogs={loadingBuildLogs}
                         buildLogEndRef={buildLogEndRef}
                     />
                 )}

@@ -54,17 +54,15 @@ const ContainerDetail: React.FC = () => {
   const [isSavingEnv, setIsSavingEnv] = useState(false);
   const [customDomain, setCustomDomain] = useState('');
   const [customDomainEnabled, setCustomDomainEnabled] = useState(true);
-  const [streamingBuild, setStreamingBuild] = useState(false);
+  const [loadingBuildLogs, setLoadingBuildLogs] = useState(false);
   const [streamingExec, setStreamingExec] = useState(false);
   const [selectedBuildJobId, setSelectedBuildJobId] = useState<string | null>(null);
   const [volumes, setVolumes] = useState<any[]>([]);
   const [newVolume, setNewVolume] = useState({ name: '', size_mb: 128, mount_path: '/data' });
   const [isCreatingVolume, setIsCreatingVolume] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
   const execWsRef = useRef<WebSocket | null>(null);
   const buildLogContainerRef = useRef<HTMLDivElement>(null);
   const execLogContainerRef = useRef<HTMLDivElement>(null);
-  const buildSseRef = useRef<AbortController | null>(null);
   const execSseRef = useRef<AbortController | null>(null);
 
   const fetchContainer = async () => {
@@ -197,14 +195,22 @@ const ContainerDetail: React.FC = () => {
   }, [buildJobs, activeTab]);
 
   useEffect(() => {
-    if (selectedBuildJobId && activeTab === 'build-logs') {
-      startBuildLogStream(selectedBuildJobId);
-    }
-    return () => {
-      buildSseRef.current?.abort();
-      wsRef.current?.close();
-    };
+    if (!selectedBuildJobId || activeTab !== 'build-logs') return;
+
+    setBuildLogs([]);
+    fetchBuildLogs(selectedBuildJobId);
   }, [selectedBuildJobId, activeTab]);
+
+  useEffect(() => {
+    if (!selectedBuildJobId || activeTab !== 'build-logs') return;
+
+    const selectedJob = buildJobs.find(j => j.id === selectedBuildJobId);
+    const isActive = selectedJob && (selectedJob.status === 'Queued' || selectedJob.status === 'Running');
+    if (!isActive) return;
+
+    const interval = setInterval(() => fetchBuildLogs(selectedBuildJobId), 3000);
+    return () => clearInterval(interval);
+  }, [selectedBuildJobId, activeTab, buildJobs]);
 
   useEffect(() => {
     if (activeTab === 'exec-logs') {
@@ -237,64 +243,23 @@ const ContainerDetail: React.FC = () => {
   }, [execLogs]);
 
 
-  // Build Logs Stream with WebSocket
-  const startBuildLogStream = (jobId: string) => {
-    wsRef.current?.close();
-    setBuildLogs([]);
-
-    const selectedJob = buildJobs.find(j => j.id === jobId);
-    if (selectedJob && (selectedJob.status === 'Success' || selectedJob.status === 'Failed' || selectedJob.status === 'Cancelled' || selectedJob.status === 'Succeeded' || selectedJob.status === 'Complete')) {
-      setStreamingBuild(false);
-      // APIから履歴ログを取得
-      api.get(`/app/v1/build-jobs/${jobId}/logs`)
-        .then(res => {
-          const logData = res.data.data.log;
-          if (logData) {
-            setBuildLogs(logData.split('\n').filter((l: string) => l.trim() !== ''));
-          } else {
-            setBuildLogs(['ログが保存されていません。']);
-          }
-        })
-        .catch(err => {
-          console.error("Failed to fetch build logs", err);
-          setBuildLogs(['ログの取得に失敗しました。']);
-        });
-      return;
-    }
-
-    setStreamingBuild(true);
-    
-    const token = sessionStorage.getItem('access_token');
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    // トークンをサブプロトコルとして渡す (URLには含めない)
-    const ws = new WebSocket(`${protocol}//${host}/app/v1/ws/build-jobs/${jobId}`, token || '');
-    wsRef.current = ws;
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === 'log' && data.log) {
-          const lines = data.log.split('\n');
-          setBuildLogs(prev => [...prev, ...lines.filter((l: string) => l.trim() !== '')]);
-        } else if (data.event === 'done') {
-          setStreamingBuild(false);
-          fetchBuildJobs();
-          ws.close();
+  const fetchBuildLogs = (jobId: string) => {
+    setLoadingBuildLogs(true);
+    api.get(`/app/v1/build-jobs/${jobId}/logs`)
+      .then(res => {
+        const logData = res.data.data.log;
+        if (logData) {
+          setBuildLogs(logData.split('\n').filter((l: string) => l.trim() !== ''));
+        } else {
+          setBuildLogs([]);
         }
-      } catch (e) {
-        console.error("WS parse error", e);
-      }
-    };
-
-    ws.onclose = () => {
-      setStreamingBuild(false);
-    };
-
-    ws.onerror = (err) => {
-      console.error("WS error", err);
-      setStreamingBuild(false);
-    };
+      })
+      .catch(err => {
+        console.error("Failed to fetch build logs", err);
+      })
+      .finally(() => {
+        setLoadingBuildLogs(false);
+      });
   };
 
   // Execution Logs Stream with WebSocket
@@ -579,8 +544,18 @@ const ContainerDetail: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-medium text-[#202124]">ビルド出力ログ</h3>
                   <div className="flex items-center space-x-2 mt-1">
-                    <div className={cn("w-2 h-2 rounded-full", streamingBuild ? "bg-google-green animate-pulse" : "bg-gray-300")} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#5f6368]">{streamingBuild ? 'ストリーミング中' : 'ログ表示中'}</span>
+                    {(() => {
+                      const job = buildJobs.find(j => j.id === selectedBuildJobId);
+                      const isActive = job && (job.status === 'Queued' || job.status === 'Running');
+                      return (
+                        <>
+                          <div className={cn("w-2 h-2 rounded-full", isActive ? "bg-yellow-400 animate-pulse" : "bg-gray-300")} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#5f6368]">
+                            {isActive ? 'ポーリング中' : 'ログ表示中'}
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -612,11 +587,13 @@ const ContainerDetail: React.FC = () => {
               </div>
               {buildLogs.length === 0 ? (
                 <div className="h-[500px] flex flex-col items-center justify-center text-[#9aa0a6] space-y-4">
-                  <div className="p-4 bg-white/5 rounded-full animate-pulse">
+                  <div className={cn("p-4 bg-white/5 rounded-full", loadingBuildLogs && "animate-pulse")}>
                     <Terminal size={40} className="opacity-20" />
                   </div>
                   <div className="text-center">
-                    <p className="font-medium text-white/60">ログを読み込み中...</p>
+                    <p className="font-medium text-white/60">
+                      {loadingBuildLogs ? 'ログを読み込み中...' : 'ログがありません'}
+                    </p>
                     <p className="text-xs opacity-50 mt-1">ジョブを選択してログを表示してください。</p>
                   </div>
                 </div>
