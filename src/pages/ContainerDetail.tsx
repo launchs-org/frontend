@@ -60,10 +60,8 @@ const ContainerDetail: React.FC = () => {
   const [volumes, setVolumes] = useState<any[]>([]);
   const [newVolume, setNewVolume] = useState({ name: '', size_mb: 128, mount_path: '/data' });
   const [isCreatingVolume, setIsCreatingVolume] = useState(false);
-  const execWsRef = useRef<WebSocket | null>(null);
   const buildLogContainerRef = useRef<HTMLDivElement>(null);
   const execLogContainerRef = useRef<HTMLDivElement>(null);
-  const execSseRef = useRef<AbortController | null>(null);
   const buildJobsRef = useRef<BuildJob[]>([]);
 
   const fetchContainer = async () => {
@@ -211,15 +209,18 @@ const ContainerDetail: React.FC = () => {
     return () => clearInterval(interval);
   }, [selectedBuildJobId, activeTab]);
 
+  // 実行ログを3秒ごとにポーリング（Running中は継続、それ以外は1回のみ取得）
   useEffect(() => {
-    if (activeTab === 'exec-logs') {
-      startExecLogStream();
-    }
-    return () => {
-      execSseRef.current?.abort();
-      execWsRef.current?.close();
-    };
-  }, [id, activeTab]);
+    if (activeTab !== 'exec-logs') return;
+
+    fetchExecLogs();
+
+    const isActive = container?.status === 'Running' || container?.status === 'Deploying' || container?.status === 'Redeploying';
+    if (!isActive) return;
+
+    const interval = setInterval(fetchExecLogs, 3000);
+    return () => clearInterval(interval);
+  }, [id, activeTab, container?.status]);
 
   useEffect(() => {
     if (buildLogContainerRef.current) {
@@ -261,44 +262,19 @@ const ContainerDetail: React.FC = () => {
       });
   };
 
-  // Execution Logs Stream with WebSocket
-  const startExecLogStream = () => {
-    execWsRef.current?.close();
-    setExecLogs([]);
+  const fetchExecLogs = () => {
     setStreamingExec(true);
-
-    const token = sessionStorage.getItem('access_token');
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    
-    // トークンをサブプロトコルとして渡す (URLには含めない)
-    const ws = new WebSocket(`${protocol}//${host}/app/v1/ws/containers/${id}/logs`, token || '');
-    execWsRef.current = ws;
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === 'log') {
-          const entry: LogEntry = {
-            pod_name: data.pod || 'unknown',
-            timestamp: data.timestamp || new Date().toISOString(),
-            message: data.log || ''
-          };
-          setExecLogs(prev => [...prev, entry]);
-        }
-      } catch (e) {
-        console.error("Exec WS parse error", e);
-      }
-    };
-
-    ws.onclose = () => {
-      setStreamingExec(false);
-    };
-
-    ws.onerror = (err) => {
-      console.error("Exec WS error", err);
-      setStreamingExec(false);
-    };
+    api.get(`/app/v1/containers/${id}/logs`)
+      .then(res => {
+        const logs: { line: string }[] = res.data.data.logs || [];
+        setExecLogs(logs.map(l => ({
+          pod_name: '',
+          timestamp: '',
+          message: l.line,
+        })));
+      })
+      .catch(err => console.error("Failed to fetch exec logs", err))
+      .finally(() => setStreamingExec(false));
   };
 
 
@@ -621,8 +597,8 @@ const ContainerDetail: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-medium text-[#202124]">コンテナ実行ログ</h3>
                   <div className="flex items-center space-x-2 mt-1">
-                    <div className={cn("w-2 h-2 rounded-full", streamingExec ? "bg-google-green animate-pulse" : "bg-gray-300")} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#5f6368]">{streamingExec ? 'ストリーミング中' : 'ログ表示中'}</span>
+                    <div className={cn("w-2 h-2 rounded-full", streamingExec ? "bg-yellow-400 animate-pulse" : "bg-gray-300")} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#5f6368]">{streamingExec ? 'ポーリング中 (3秒ごと)' : 'ログ表示中'}</span>
                   </div>
                 </div>
               </div>

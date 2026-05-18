@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { containerService } from '../../services/containerService';
-import { logStreamService } from '../../services/logStreamService';
+import { api } from '../../lib/api';
 
 // Tab Components
 import { OverviewTab } from './container-side-panel/OverviewTab';
@@ -47,7 +47,6 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
 
     const [loadingBuildLogs, setLoadingBuildLogs] = useState(false);
     const [execLogConnected, setExecLogConnected] = useState(false);
-    const execWsRef = useRef<WebSocket | null>(null);
     const buildLogEndRef = useRef<HTMLDivElement>(null);
     const execLogEndRef = useRef<HTMLDivElement>(null);
     const buildJobsRef = useRef<any[]>([]);
@@ -151,25 +150,29 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
         return () => clearInterval(interval);
     }, [selectedBuildJobId, activeTab]);
 
-    // Exec Logs Streaming Logic
+    // 実行ログポーリング
     useEffect(() => {
-        if (activeTab === 'exec-logs') {
-            execWsRef.current?.close();
-            setExecLogs([]);
-            setExecLogConnected(false);
-            const ws = logStreamService.startExecLogStream(
-                containerId,
-                (entry) => setExecLogs(prev => [...prev, entry]),
-                (active) => setExecLogConnected(active)
-            );
-            ws.onopen = () => setExecLogConnected(true);
-            execWsRef.current = ws;
-        }
-        return () => {
-            execWsRef.current?.close();
-            setExecLogConnected(false);
+        if (activeTab !== 'exec-logs') return;
+
+        const fetchExecLogs = () => {
+            setExecLogConnected(true);
+            api.get(`/app/v1/containers/${containerId}/logs`)
+                .then(res => {
+                    const logs: { line: string }[] = res.data.data.logs || [];
+                    setExecLogs(logs.map(l => ({ pod_name: '', timestamp: '', message: l.line })));
+                })
+                .catch(err => console.error("Failed to fetch exec logs", err))
+                .finally(() => setExecLogConnected(false));
         };
-    }, [containerId, activeTab]);
+
+        fetchExecLogs();
+
+        const isActive = container?.status === 'Running' || container?.status === 'Deploying' || container?.status === 'Redeploying';
+        if (!isActive) return;
+
+        const interval = setInterval(fetchExecLogs, 3000);
+        return () => clearInterval(interval);
+    }, [containerId, activeTab, container?.status]);
 
     const handleSaveEnvVars = async () => {
         setIsSavingEnv(true);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, WifiOff } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface ExecLogsTabProps {
     execLogs: any[];
@@ -15,13 +15,13 @@ export const ExecLogsTab: React.FC<ExecLogsTabProps> = ({ execLogs, execLogEndRe
                     <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded border border-white/10">
                         {connected ? (
                             <>
-                                <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                                <span className="text-[8px] text-gray-400">ストリーミング中</span>
+                                <span className="w-1 h-1 bg-yellow-400 rounded-full animate-pulse" />
+                                <span className="text-[8px] text-gray-400">ポーリング中 (3秒)</span>
                             </>
                         ) : (
                             <>
-                                <WifiOff size={8} className="text-gray-500" />
-                                <span className="text-[8px] text-gray-500">接続中...</span>
+                                <span className="w-1 h-1 bg-gray-500 rounded-full" />
+                                <span className="text-[8px] text-gray-500">ログ表示中</span>
                             </>
                         )}
                     </div>
