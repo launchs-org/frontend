@@ -7,7 +7,6 @@ interface BuildLogsTabProps {
     setSelectedBuildJobId: (id: string) => void;
     buildLogs: string[];
     loadingBuildLogs: boolean;
-    buildLogEndRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const BuildLogsTab: React.FC<BuildLogsTabProps> = ({

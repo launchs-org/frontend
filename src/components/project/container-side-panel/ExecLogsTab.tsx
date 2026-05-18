@@ -3,7 +3,6 @@ import { LogViewer } from './LogViewer';
 
 interface ExecLogsTabProps {
     execLogs: any[];
-    execLogEndRef: React.RefObject<HTMLDivElement | null>;
     connected: boolean;
 }
 
