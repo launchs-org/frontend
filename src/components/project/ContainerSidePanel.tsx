@@ -47,8 +47,6 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
 
     const [loadingBuildLogs, setLoadingBuildLogs] = useState(false);
     const [execLogConnected, setExecLogConnected] = useState(false);
-    const buildLogEndRef = useRef<HTMLDivElement>(null);
-    const execLogEndRef = useRef<HTMLDivElement>(null);
     const buildJobsRef = useRef<any[]>([]);
 
     // 選択されたコンテナの情報を取得する
@@ -113,15 +111,6 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     useEffect(() => {
         if (activeTab === 'volumes') fetchVolumes();
     }, [containerId, activeTab]);
-
-    // Auto-scroll for logs
-    useEffect(() => {
-        if (activeTab === 'build-logs') buildLogEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [buildLogs, activeTab]);
-
-    useEffect(() => {
-        if (activeTab === 'exec-logs') execLogEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [execLogs, activeTab]);
 
     const fetchBuildLogs = (jobId: string) => {
         setLoadingBuildLogs(true);
@@ -275,14 +264,12 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
                         setSelectedBuildJobId={setSelectedBuildJobId}
                         buildLogs={buildLogs}
                         loadingBuildLogs={loadingBuildLogs}
-                        buildLogEndRef={buildLogEndRef}
                     />
                 )}
 
                 {activeTab === 'exec-logs' && (
                     <ExecLogsTab
                         execLogs={execLogs}
-                        execLogEndRef={execLogEndRef}
                         connected={execLogConnected}
                     />
                 )}

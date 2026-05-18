@@ -103,7 +103,7 @@ const ProjectDetail: React.FC = () => {
 
             <div className="flex-1 overflow-hidden rounded-2xl border border-gray-100 shadow-sm bg-white">
                 <Group className="h-full">
-                    <ResizablePanel defaultSize={selectedId ? 70 : 100} minSize={30} className="h-full">
+                    <ResizablePanel defaultSize={selectedId ? 60 : 100} minSize={30} className="h-full">
                         {containers.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full gap-3 bg-gray-50 text-gray-300">
                                 <Box size={36} strokeWidth={1} />
@@ -122,9 +122,9 @@ const ProjectDetail: React.FC = () => {
                         <>
                             <Separator className="w-1 bg-gray-100 hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors cursor-col-resize" />
                             <ResizablePanel
-                                defaultSize={30}
-                                minSize={20}
-                                maxSize={500}
+                                defaultSize={40}
+                                minSize={25}
+                                // maxSize={1200}
                                 className="h-full bg-white"
                             >
                                 <div className="h-full border-l border-gray-50 overflow-hidden w-full">

@@ -78,7 +78,9 @@ const TreeLayoutContent: React.FC<Props> = ({
                         data: {
                             ...n.data,
                             onSelect: () => {
-                                const containerId = n.id.split('-').pop();
+                                // IDs are like "ingress-<containerId>" or "service-<containerId>"
+                                const prefix = n.type === 'ingressNode' ? 'ingress-' : 'service-';
+                                const containerId = n.id.slice(prefix.length);
                                 if (containerId) onContainerSelect(containerId, 'networking');
                             }
                         }

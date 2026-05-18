@@ -44,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <aside 
                 className={cn(
                     "flex flex-col bg-white border-r border-[#dadce0] transition-all duration-300 ease-in-out",
-                    isCollapsed ? "w-20" : "w-64"
+                    isCollapsed ? "w-20" : "w-96"
                 )}
             >
                 {/* Header / Toggle Area */}
@@ -133,11 +133,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     isCollapsed ? "justify-center" : "justify-between"
                 )}>
                     {isCollapsed ? (
-                        <span>?</span>
+                        <a href="https://launchs-org.github.io/docs/usage/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 transition-colors">?</a>
                     ) : (
                         <>
                             <span>プライバシー • 規約</span>
-                            <span>ヘルプ</span>
+                            <a href="https://launchs-org.github.io/docs/usage/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 transition-colors">ヘルプ</a>
                         </>
                     )}
                 </div>
