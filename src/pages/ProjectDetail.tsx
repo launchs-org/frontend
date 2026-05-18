@@ -7,9 +7,17 @@ import { containerService, type CreateContainerFiles } from '../services/contain
 import { ContainerSidePanel } from '../components/project/ContainerSidePanel';
 import { DeployModal } from '../components/project/DeployModal';
 import { TreeLayout } from '../components/TreeLayout';
+import { useTutorial } from '../contexts/TutorialContext';
 
 const DEFAULT_FORM: CreateContainerFiles = {
     name: '', repository_url: '', branch: '', directory: '',
+};
+
+const TUTORIAL_CONTAINER_FORM: CreateContainerFiles = {
+    name: 'sample-app',
+    repository_url: 'https://github.com/launchs-org/sample-go-app',
+    branch: 'main',
+    directory: '.',
 };
 
 const ProjectDetail: React.FC = () => {
@@ -23,6 +31,8 @@ const ProjectDetail: React.FC = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedTab, setSelectedTab] = useState<any>(undefined);
     const [formData, setFormData] = useState<CreateContainerFiles>(DEFAULT_FORM);
+
+    const { isActive, currentStep, goToStep, setTutorialContainerId, setTutorialContainerName } = useTutorial();
 
     const fetchData = useCallback(async (silent = false) => {
         if (!id) return;
@@ -59,16 +69,31 @@ const ProjectDetail: React.FC = () => {
         if (!id) return;
         setCreating(true);
         try {
-            await containerService.createContainer(id, formData);
+            const res = await containerService.createContainer(id, formData);
+            const created = res.data?.data;
             setShowModal(false);
             setFormData(DEFAULT_FORM);
             fetchData();
+            if (isActive && (currentStep === 'create-container' || currentStep === 'container-form-open')) {
+                if (created?.id) setTutorialContainerId(created.id);
+                setTutorialContainerName(created?.name ?? formData.name);
+                goToStep('container-created');
+            }
         } catch {
             alert('デプロイの開始に失敗しました。');
         } finally {
             setCreating(false);
         }
     };
+
+    // チュートリアル: コンテナ一覧が更新されたら ID を同期
+    useEffect(() => {
+        if (isActive && currentStep === 'container-created' && containers.length > 0) {
+            const c = containers[0];
+            setTutorialContainerId(c.id);
+            setTutorialContainerName(c.name);
+        }
+    }, [isActive, currentStep, containers]);
 
     if (loading && !project) {
         return (
@@ -83,7 +108,11 @@ const ProjectDetail: React.FC = () => {
         <div className="h-[calc(100vh-50px)] flex flex-col gap-4 animate-in fade-in duration-400">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
                 <div className="flex flex-col gap-1">
-                    <Link to="/projects" className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors w-fit">
+                    <Link
+                        to="/projects"
+                        data-tutorial={isActive && currentStep === 'delete-container' ? 'back-to-projects' : undefined}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors w-fit"
+                    >
                         <ArrowLeft size={13} /> プロジェクト一覧
                     </Link>
                     <div className="flex items-center gap-3">
@@ -94,7 +123,14 @@ const ProjectDetail: React.FC = () => {
                     </div>
                 </div>
                 <button
-                    onClick={() => setShowModal(true)}
+                    data-tutorial="add-container-btn"
+                    onClick={() => {
+                        if (isActive && currentStep === 'create-container') {
+                            setFormData(TUTORIAL_CONTAINER_FORM);
+                            goToStep('container-form-open');
+                        }
+                        setShowModal(true);
+                    }}
                     className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
                 >
                     <Plus size={16} /> コンテナを追加
@@ -149,8 +185,12 @@ const ProjectDetail: React.FC = () => {
                     formData={formData}
                     setFormData={setFormData}
                     onSubmit={handleCreateContainer}
-                    onClose={() => setShowModal(false)}
+                    onClose={() => {
+                        setShowModal(false);
+                        if (isActive && currentStep === 'container-form-open') goToStep('create-container');
+                    }}
                     creating={creating}
+                    isTutorial={isActive && (currentStep === 'create-container' || currentStep === 'container-form-open')}
                 />
             )}
         </div>

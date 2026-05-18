@@ -6,6 +6,7 @@ import {
 import { cn } from '../../lib/utils';
 import { containerService } from '../../services/containerService';
 import { api } from '../../lib/api';
+import { useTutorial } from '../../contexts/TutorialContext';
 
 // Tab Components
 import { OverviewTab } from './container-side-panel/OverviewTab';
@@ -28,6 +29,7 @@ type SidebarTab = 'overview' | 'builds' | 'build-logs' | 'exec-logs' | 'networki
 
 export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containerId, containerData, onClose, initialTab }) => {
     const [activeTab, setActiveTab] = useState<SidebarTab>(initialTab || 'overview');
+    const { isActive, currentStep, goToStep } = useTutorial();
 
     // Update activeTab when initialTab changes (e.g. from clicking another node)
     useEffect(() => {
@@ -105,10 +107,25 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
     useEffect(() => {
         if (activeTab === 'builds' || activeTab === 'build-logs') {
             fetchBuildJobs();
-            const interval = setInterval(fetchBuildJobs, 5000); // 5 seconds polling
+            const interval = setInterval(fetchBuildJobs, 5000);
             return () => clearInterval(interval);
         }
     }, [containerId, activeTab]);
+
+    // チュートリアル waiting-build: ビルド完了を自動検知して次ステップへ
+    useEffect(() => {
+        if (!isActive || currentStep !== 'waiting-build') return;
+        // builds タブに切り替えてポーリングを有効化
+        if (activeTab !== 'build-logs') setActiveTab('build-logs');
+        fetchBuildJobs();
+        const interval = setInterval(async () => {
+            await fetchBuildJobs();
+            const jobs = buildJobsRef.current;
+            const done = jobs.some(j => j.status === 'Success' || j.status === 'Failed' || j.status === 'Error');
+            if (done) goToStep('open-exec-logs');
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [isActive, currentStep]);
 
     useEffect(() => {
         if (activeTab === 'volumes') fetchVolumes();
@@ -221,17 +238,43 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
 
             {/* Tabs */}
             <div className="flex-shrink-0 flex overflow-x-auto scrollbar-hide border-b bg-white">
-                {tabs.map(tab => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn(
-                        "flex flex-col items-center gap-1 px-3 py-2 text-[12px] font-bold transition-all whitespace-nowrap border-b-2 min-w-[56px]",
-                        activeTab === tab.id 
-                            ? (tab.id === 'delete' ? "border-red-500 text-red-600 bg-red-50/30" : "border-blue-500 text-blue-600 bg-blue-50/30") 
-                            : "border-transparent text-gray-400 hover:text-gray-600"
-                    )}>
-                        <tab.icon size={14} />
-                        <span>{tab.label}</span>
-                    </button>
-                ))}
+                {tabs.map(tab => {
+                    const tutorialAttrMap: Partial<Record<string, string>> = {
+                        overview:    (isActive && currentStep === 'view-build-status') ? 'overview-tab' : '',
+                        builds:      (isActive && currentStep === 'open-builds')       ? 'builds-tab'   : '',
+                        'build-logs':(isActive && currentStep === 'waiting-build')     ? 'build-logs-tab': '',
+                        'exec-logs': (isActive && currentStep === 'open-exec-logs')    ? 'exec-logs-tab' : '',
+                        networking:  (isActive && currentStep === 'open-networking')   ? 'networking-tab': '',
+                        delete:      (isActive && currentStep === 'ingress-enabled')   ? 'delete-tab'    : '',
+                    };
+                    const tutorialAttr = tutorialAttrMap[tab.id] || undefined;
+                    return (
+                        <button
+                            key={tab.id}
+                            data-tutorial={tutorialAttr || undefined}
+                            onClick={() => {
+                                setActiveTab(tab.id);
+                                if (isActive) {
+                                    if (currentStep === 'view-build-status' && tab.id === 'overview') goToStep('open-builds');
+                                    if (currentStep === 'open-builds' && tab.id === 'builds') goToStep('waiting-build');
+                                    if (currentStep === 'waiting-build' && tab.id === 'build-logs') { /* 自動遷移待ち */ }
+                                    if (currentStep === 'open-exec-logs' && tab.id === 'exec-logs') goToStep('open-networking');
+                                    if (currentStep === 'open-networking' && tab.id === 'networking') goToStep('enable-ingress');
+                                    if (currentStep === 'ingress-enabled' && tab.id === 'delete') goToStep('open-delete');
+                                }
+                            }}
+                            className={cn(
+                                "flex flex-col items-center gap-1 px-3 py-2 text-[12px] font-bold transition-all whitespace-nowrap border-b-2 min-w-[56px]",
+                                activeTab === tab.id
+                                    ? (tab.id === 'delete' ? "border-red-500 text-red-600 bg-red-50/30" : "border-blue-500 text-blue-600 bg-blue-50/30")
+                                    : "border-transparent text-gray-400 hover:text-gray-600"
+                            )}
+                        >
+                            <tab.icon size={14} />
+                            <span>{tab.label}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Content Area */}

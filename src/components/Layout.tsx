@@ -1,5 +1,5 @@
-import React, { useState } from 'react'; // useStateを追加
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     Box,
@@ -7,9 +7,11 @@ import {
     Settings,
     Plus,
     Activity,
-    Menu
+    Menu,
+    BookOpen,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTutorial } from '../contexts/TutorialContext';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -17,8 +19,14 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
     const location = useLocation();
-    // サイドバーの状態管理
+    const navigate = useNavigate();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const { startTutorial } = useTutorial();
+
+    const handleStartTutorial = () => {
+        startTutorial();
+        navigate('/projects');
+    };
 
     const menuItems = [
         { name: 'ダッシュボード', icon: LayoutDashboard, path: '/', disabled: true },
@@ -129,16 +137,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                 {/* Footer */}
                 <div className={cn(
-                    "p-4 border-t border-[#dadce0] text-[11px] text-gray-500 flex transition-all",
-                    isCollapsed ? "justify-center" : "justify-between"
+                    "p-4 border-t border-[#dadce0] text-[11px] text-gray-500 flex flex-col gap-2 transition-all",
+                    isCollapsed ? "items-center" : "items-stretch"
                 )}>
-                    {isCollapsed ? (
-                        <span>?</span>
-                    ) : (
-                        <>
+                    <button
+                        onClick={handleStartTutorial}
+                        title="チュートリアルを開始"
+                        className={cn(
+                            "flex items-center gap-2 py-2 px-3 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors font-medium",
+                            isCollapsed ? "justify-center px-0" : ""
+                        )}
+                    >
+                        <BookOpen size={16} />
+                        {!isCollapsed && <span className="text-xs">チュートリアル</span>}
+                    </button>
+                    {!isCollapsed && (
+                        <div className="flex justify-between text-[11px]">
                             <span>プライバシー • 規約</span>
                             <span>ヘルプ</span>
-                        </>
+                        </div>
                     )}
                 </div>
             </aside>

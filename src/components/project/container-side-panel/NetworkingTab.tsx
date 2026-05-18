@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Activity, Globe, Trash2, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { containerService } from '../../../services/containerService';
+import { useTutorial } from '../../../contexts/TutorialContext';
 
 interface NetworkingTabProps {
     containerId: string;
@@ -25,6 +26,7 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
     fetchData
 }) => {
     const svc = container?.service;
+    const { isActive, currentStep, goToStep } = useTutorial();
 
     // ポートはローカル state で管理する
     const [localPorts, setLocalPorts] = useState<any[]>(() => {
@@ -42,6 +44,18 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
     const isServicePending  = svc?.status === 'pending' && svc?.is_active === true;
     const isServiceDeleting = svc?.status === 'deleting';
     const isIngressPending  = container?.ingress?.status === 'pending';
+
+    // チュートリアル: enable-ingress ステップでサービスとポートが未設定なら自動セットアップ
+    useEffect(() => {
+        if (!isActive || currentStep !== 'enable-ingress') return;
+        if (svc?.is_active) return;
+        containerService.updateService(containerId, {
+            is_active: true,
+            ports: [{ name: 'http', protocol: 'TCP', port: 1323, target: 1323 }],
+        }).then(res => {
+            setContainer({ ...container, service: res.data.data });
+        }).catch(() => {});
+    }, [isActive, currentStep]);
 
     return (
         <div className="p-4 space-y-5">
@@ -239,13 +253,19 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
                                 </select>
                             </div>
                             <button
+                                data-tutorial={isActive && currentStep === 'enable-ingress' ? 'enable-ingress-btn' : undefined}
                                 onClick={() => {
                                     const p = (document.getElementById('ing-port') as HTMLSelectElement).value;
                                     containerService.createIngress(containerId, {
                                         http_port: parseInt(p),
                                         custom_domain: customDomain,
                                         custom_domain_enabled: customDomainEnabled,
-                                    }).then(fetchData);
+                                    }).then(() => {
+                                        fetchData();
+                                        if (isActive && currentStep === 'enable-ingress') {
+                                            goToStep('ingress-enabled');
+                                        }
+                                    });
                                 }}
                                 className="w-full py-2 bg-blue-500 text-white rounded-lg text-[10px] font-bold"
                             >

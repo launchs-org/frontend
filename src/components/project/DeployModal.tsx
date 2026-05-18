@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Loader2, Plus, GitBranch, Folder, ChevronDown } from 'lucide-react';
+import { X, Loader2, Plus, GitBranch, Folder, ChevronDown, BookOpen } from 'lucide-react';
 
 interface DeployModalProps {
     formData: any;
@@ -7,6 +7,7 @@ interface DeployModalProps {
     onSubmit: (e: React.FormEvent) => void;
     onClose: () => void;
     creating: boolean;
+    isTutorial?: boolean;
 }
 
 const GITHUB_URL_RE = /github\.com[/:][^/]+\/[^/\s]+/;
@@ -45,7 +46,7 @@ async function fetchDirectories(repoUrl: string, branch: string): Promise<string
 }
 
 export const DeployModal: React.FC<DeployModalProps> = ({
-    formData, setFormData, onSubmit, onClose, creating
+    formData, setFormData, onSubmit, onClose, creating, isTutorial = false
 }) => {
     const [branches, setBranches] = useState<string[]>([]);
     const [directories, setDirectories] = useState<string[]>([]);
@@ -126,8 +127,8 @@ export const DeployModal: React.FC<DeployModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 2147483646 }}>
+            <div data-tutorial="deploy-form" className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in duration-200">
                 <div className="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
                     <div>
                         <h3 className="text-xl font-bold text-gray-900">新規デプロイ</h3>
@@ -139,6 +140,16 @@ export const DeployModal: React.FC<DeployModalProps> = ({
                 </div>
 
                 <form onSubmit={onSubmit} className="p-8 space-y-6">
+                    {/* チュートリアルバナー */}
+                    {isTutorial && (
+                        <div className="flex items-start gap-3 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl">
+                            <BookOpen size={15} className="text-blue-500 mt-0.5 shrink-0" />
+                            <p className="text-xs text-blue-700 leading-relaxed">
+                                サンプルアプリ（Go製のシンプルなWebサーバー）の情報が入力済みです。そのままデプロイを開始してください。
+                            </p>
+                        </div>
+                    )}
+
                     {/* コンテナ名 */}
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">コンテナ名</label>
@@ -209,6 +220,11 @@ export const DeployModal: React.FC<DeployModalProps> = ({
                                 )}
                             </div>
                         )}
+                        {isTutorial && (
+                            <p className="text-[11px] text-gray-400">
+                                デプロイするブランチを選択します。<code className="bg-gray-100 px-1 rounded">main</code> が本番用、<code className="bg-gray-100 px-1 rounded">dev</code> が開発用など、用途に合わせて使い分けられます。
+                            </p>
+                        )}
                     </div>
 
                     {/* ディレクトリ選択 */}
@@ -243,6 +259,11 @@ export const DeployModal: React.FC<DeployModalProps> = ({
                                     <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-blue-400" />
                                 )}
                             </div>
+                        )}
+                        {isTutorial && (
+                            <p className="text-[11px] text-gray-400">
+                                リポジトリ内でビルド対象とするフォルダを指定します。<code className="bg-gray-100 px-1 rounded">.</code> はルート直下を意味します。モノレポ構成など複数アプリが同居する場合にサブフォルダを指定します。
+                            </p>
                         )}
                     </div>
 

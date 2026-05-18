@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { containerService } from '../../../services/containerService';
+import { useTutorial } from '../../../contexts/TutorialContext';
 
 interface DeleteTabProps {
     containerId: string;
@@ -11,14 +12,18 @@ interface DeleteTabProps {
 export const DeleteTab: React.FC<DeleteTabProps> = ({ containerId, containerName, onClose }) => {
     const [confirmName, setConfirmName] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
+    const { isActive, currentStep, goToStep } = useTutorial();
 
     const handleDelete = async () => {
         if (confirmName !== containerName) return;
         if (!window.confirm('本当にこのコンテナを完全に削除しますか？この操作は取り消せません。')) return;
-        
+
         setIsDeleting(true);
         try {
             await containerService.deleteContainer(containerId);
+            if (isActive && (currentStep === 'open-delete' || currentStep === 'delete-container')) {
+                goToStep('delete-container');
+            }
             alert('コンテナを削除しました。');
             onClose();
         } catch (err) {
@@ -54,6 +59,7 @@ export const DeleteTab: React.FC<DeleteTabProps> = ({ containerId, containerName
                     className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 outline-none font-mono"
                 />
                 <button
+                    data-tutorial={isActive && (currentStep === 'open-delete') ? 'delete-container-btn' : undefined}
                     onClick={handleDelete}
                     disabled={confirmName !== containerName || isDeleting}
                     className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-sm"

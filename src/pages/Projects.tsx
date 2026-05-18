@@ -8,9 +8,11 @@ import {
   ChevronRight,
   X,
   Loader2,
-  Trash2
+  Trash2,
+  Clock,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTutorial } from '../contexts/TutorialContext';
 
 interface Project {
   id: string;
@@ -26,6 +28,8 @@ const STATUS_CONFIG: Record<string, { label: string; badgeClass: string; pulse: 
   Deleting: { label: '削除中',  badgeClass: 'bg-red-100 text-red-700',     pulse: true },
 };
 
+const TUTORIAL_PROJECT_NAME = 'my-first-project';
+
 const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +38,8 @@ const Projects: React.FC = () => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({ name: '' });
+
+  const { isActive, currentStep, goToStep, setTutorialProjectId, tutorialProjectId } = useTutorial();
 
   const fetchProjects = useCallback(async (silent = false) => {
     try {
@@ -60,10 +66,15 @@ const Projects: React.FC = () => {
     evt.preventDefault();
     setCreating(true);
     try {
-      await api.post('/app/v1/projects', formData);
+      const res = await api.post('/app/v1/projects', formData);
       setShowModal(false);
       setFormData({ name: '' });
       fetchProjects(true);
+      if (isActive && (currentStep === 'create-project' || currentStep === 'project-form-open')) {
+        const created = res.data?.data;
+        if (created?.id) setTutorialProjectId(created.id);
+        goToStep('project-created');
+      }
     } catch (error) {
       console.error('Failed to create project:', error);
       alert('プロジェクトの作成に失敗しました。プロジェクト名は英小文字、数字、ハイフンのみ使用可能です。');
@@ -71,6 +82,14 @@ const Projects: React.FC = () => {
       setCreating(false);
     }
   };
+
+  // チュートリアル: プロジェクトが出来たら tutorialProjectId を同期
+  useEffect(() => {
+    if (isActive && currentStep === 'project-created' && projects.length > 0) {
+      const target = projects.find(p => p.name === TUTORIAL_PROJECT_NAME) ?? projects[0];
+      setTutorialProjectId(target.id);
+    }
+  }, [isActive, currentStep, projects]);
 
   const handleDeleteProject = async (evt: React.MouseEvent, id: string, name: string) => {
     evt.preventDefault();
@@ -81,6 +100,9 @@ const Projects: React.FC = () => {
     try {
       await api.delete(`/app/v1/projects/${id}`);
       fetchProjects(true);
+      if (isActive && currentStep === 'delete-project' && (id === tutorialProjectId || !tutorialProjectId)) {
+        goToStep('completed');
+      }
     } catch (error) {
       console.error('Failed to delete project:', error);
       alert('プロジェクトの削除に失敗しました。');
@@ -97,8 +119,24 @@ const Projects: React.FC = () => {
   const isDisabled = (project: Project) =>
     project.status === 'Pending' || project.status === 'Deleting';
 
+  // チュートリアル: project-created ステップでプロジェクトが Pending なら待機バナーを表示
+  const tutorialProject = isActive && currentStep === 'project-created'
+    ? (projects.find(p => p.name === TUTORIAL_PROJECT_NAME) ?? projects[0] ?? null)
+    : null;
+  const isTutorialProjectPending = tutorialProject?.status === 'Pending';
+
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+      {/* チュートリアル: プロジェクト作成中の待機バナー */}
+      {isActive && currentStep === 'project-created' && isTutorialProjectPending && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <Clock size={16} className="text-amber-500 mt-0.5 shrink-0 animate-pulse" />
+          <div>
+            <p className="text-sm font-bold text-amber-700">プロジェクトを準備中...</p>
+            <p className="text-xs text-amber-600 mt-0.5">Kubernetes のネームスペースを作成しています。通常 30 秒〜1 分ほどかかります。完了するとカードをクリックして次へ進めます。</p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-normal text-[#202124]">プロジェクト</h2>
@@ -115,7 +153,14 @@ const Projects: React.FC = () => {
             />
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            data-tutorial="create-project-btn"
+            onClick={() => {
+              setShowModal(true);
+              if (isActive && currentStep === 'create-project') {
+                setFormData({ name: TUTORIAL_PROJECT_NAME });
+                goToStep('project-form-open');
+              }
+            }}
             className="flex items-center space-x-2 px-6 py-2 bg-google-blue text-white text-sm font-medium rounded-md hover:shadow-lg transition-all active:scale-95"
           >
             <Plus size={18} />
@@ -139,8 +184,10 @@ const Projects: React.FC = () => {
             const statusConfig = STATUS_CONFIG[project.status] ?? { label: project.status, badgeClass: 'bg-gray-100 text-gray-500', pulse: false };
             const disabled = isDisabled(project);
 
+            const isTutorialTarget = isActive && currentStep === 'project-created' && !disabled;
             const cardContent = (
               <div
+                data-tutorial={isTutorialTarget ? 'project-card' : undefined}
                 className={`google-card p-6 transition-all group border-transparent relative ${
                   disabled
                     ? 'opacity-70 cursor-not-allowed'
@@ -205,7 +252,16 @@ const Projects: React.FC = () => {
             return disabled ? (
               <div key={project.id}>{cardContent}</div>
             ) : (
-              <Link key={project.id} to={`/projects/${project.id}`}>
+              <Link
+                key={project.id}
+                to={`/projects/${project.id}`}
+                onClick={() => {
+                  if (isActive && currentStep === 'project-created') {
+                    setTutorialProjectId(project.id);
+                    goToStep('create-container');
+                  }
+                }}
+              >
                 {cardContent}
               </Link>
             );
@@ -214,11 +270,14 @@ const Projects: React.FC = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in duration-300 overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 2147483646 }}>
+          <div
+            data-tutorial="create-project-form"
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in duration-300 overflow-hidden"
+          >
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-lg font-medium text-[#202124]">プロジェクトを新規作成</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={() => { setShowModal(false); if (isActive && currentStep === 'project-form-open') goToStep('create-project'); }} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={20} />
               </button>
             </div>

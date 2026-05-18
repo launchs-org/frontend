@@ -3,6 +3,8 @@ import { Handle, Position } from '@xyflow/react';
 import { RefreshCw, Database, Folder, GitBranch, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { STATUS_STYLES } from '../treeUtils';
+import { useTutorial } from '../../contexts/TutorialContext';
+import { useCallback } from 'react';
 
 interface Props {
     data: {
@@ -27,8 +29,19 @@ export const ContainerNode: React.FC<Props> = ({ data }) => {
     const statusInfo = STATUS_STYLES[data.status as keyof typeof STATUS_STYLES] || STATUS_STYLES.Unknown;
     const isInGroup = data.isInGroup === true;
 
+    const { isActive, currentStep, tutorialContainerId, goToStep } = useTutorial();
+    const isTutorialTarget = isActive && currentStep === 'container-created' && (tutorialContainerId === data.id || !tutorialContainerId);
+
+    const handleClick = useCallback(() => {
+        data.onSelect?.(data.id);
+        if (isActive && currentStep === 'container-created') {
+            goToStep('view-build-status');
+        }
+    }, [data, isActive, currentStep, goToStep]);
+
     return (
         <div
+            data-tutorial={isTutorialTarget ? 'container-node' : undefined}
             className={cn(
                 'px-4 py-4 rounded-xl bg-white border-2 transition-all w-[260px] h-40 flex flex-col justify-between',
                 isInGroup
@@ -42,7 +55,7 @@ export const ContainerNode: React.FC<Props> = ({ data }) => {
                     ? 'border-blue-100'
                     : 'border-gray-100'
             )}
-            onClick={() => data.onSelect?.(data.id)}
+            onClick={handleClick}
         >
             {/* Handles only on standalone (non-group) cards */}
             {!isInGroup && (
