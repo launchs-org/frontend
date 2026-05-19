@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Panel as ResizablePanel, Group, Separator } from 'react-resizable-panels';
-import { Plus, ArrowLeft, Loader2, Box } from 'lucide-react';
+import { Plus, ArrowLeft, Loader2, Box, Database, HardDrive } from 'lucide-react';
 
 import { containerService, type CreateContainerFiles } from '../services/containerService';
 import { ContainerSidePanel } from '../components/project/ContainerSidePanel';
 import { DeployModal } from '../components/project/DeployModal';
+import { TemplateDeployModal } from '../components/project/TemplateDeployModal';
+import { ProjectVolumesPanel } from '../components/project/ProjectVolumesPanel';
 import { TreeLayout } from '../components/TreeLayout';
 
 const DEFAULT_FORM: CreateContainerFiles = {
@@ -19,30 +21,39 @@ const ProjectDetail: React.FC = () => {
     const [containers, setContainers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [showVolumesPanel, setShowVolumesPanel] = useState(false);
     const [creating, setCreating] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedTab, setSelectedTab] = useState<any>(undefined);
     const [formData, setFormData] = useState<CreateContainerFiles>(DEFAULT_FORM);
 
+    const [notFound, setNotFound] = useState(false);
+
     const fetchData = useCallback(async (silent = false) => {
-        if (!id) return;
+        if (!id || notFound) return;
         try {
             if (!silent) setLoading(true);
             const res = await containerService.getProject(id);
             setProject(res.data.data);
             setContainers(res.data.data.containers ?? []);
-        } catch (err) {
-            console.error('Failed to fetch project:', err);
+        } catch (err: any) {
+            if (err?.response?.status === 404) {
+                setNotFound(true);
+            } else {
+                console.error('Failed to fetch project:', err);
+            }
         } finally {
             if (!silent) setLoading(false);
         }
-    }, [id]);
+    }, [id, notFound]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {
+        if (notFound) return;
         const t = setInterval(() => fetchData(true), 3000);
         return () => clearInterval(t);
-    }, [fetchData]);
+    }, [fetchData, notFound]);
 
     const handleContainerSelect = useCallback((cid: string, tab?: any) => {
         if (selectedId === cid && !tab) {
@@ -51,8 +62,15 @@ const ProjectDetail: React.FC = () => {
         } else {
             setSelectedId(cid);
             setSelectedTab(tab);
+            setShowVolumesPanel(false);
         }
     }, [selectedId]);
+
+    const handleShowVolumes = () => {
+        setShowVolumesPanel(true);
+        setSelectedId(null);
+        setSelectedTab(undefined);
+    };
 
     const handleCreateContainer = async (evt: React.FormEvent) => {
         evt.preventDefault();
@@ -69,6 +87,15 @@ const ProjectDetail: React.FC = () => {
             setCreating(false);
         }
     };
+
+    if (notFound) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full gap-4">
+                <p className="text-sm text-gray-400 font-mono">プロジェクトが見つかりません</p>
+                <Link to="/projects" className="text-xs text-blue-500 hover:underline">プロジェクト一覧へ戻る</Link>
+            </div>
+        );
+    }
 
     if (loading && !project) {
         return (
@@ -93,17 +120,31 @@ const ProjectDetail: React.FC = () => {
                         </span>
                     </div>
                 </div>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
-                >
-                    <Plus size={16} /> コンテナを追加
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleShowVolumes}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl border transition-all active:scale-95 ${showVolumesPanel ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:shadow-md hover:-translate-y-0.5'}`}
+                    >
+                        <HardDrive size={16} /> ボリューム管理
+                    </button>
+                    <button
+                        onClick={() => setShowTemplateModal(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 text-sm font-semibold rounded-xl border border-gray-200 hover:bg-gray-50 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95"
+                    >
+                        <Database size={16} /> テンプレートから追加
+                    </button>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
+                    >
+                        <Plus size={16} /> コンテナを追加
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-hidden rounded-2xl border border-gray-100 shadow-sm bg-white">
                 <Group className="h-full">
-                    <ResizablePanel defaultSize={selectedId ? 60 : 100} minSize={30} className="h-full">
+                    <ResizablePanel defaultSize={selectedId || showVolumesPanel ? 60 : 100} minSize={30} className="h-full">
                         {containers.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full gap-3 bg-gray-50 text-gray-300">
                                 <Box size={36} strokeWidth={1} />
@@ -118,25 +159,27 @@ const ProjectDetail: React.FC = () => {
                         )}
                     </ResizablePanel>
 
-                    {selectedId && (
+                    {(selectedId || showVolumesPanel) && (
                         <>
                             <Separator className="w-1 bg-gray-100 hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors cursor-col-resize" />
-                            <ResizablePanel
-                                defaultSize={40}
-                                minSize={25}
-                                // maxSize={1200}
-                                className="h-full bg-white"
-                            >
+                            <ResizablePanel defaultSize={40} minSize={25} className="h-full bg-white">
                                 <div className="h-full border-l border-gray-50 overflow-hidden w-full">
-                                    <ContainerSidePanel
-                                        containerId={selectedId}
-                                        containerData={containers.find(c => c.id === selectedId) ?? null}
-                                        initialTab={selectedTab}
-                                        onClose={() => {
-                                            setSelectedId(null);
-                                            setSelectedTab(undefined);
-                                        }}
-                                    />
+                                    {selectedId ? (
+                                        <ContainerSidePanel
+                                            containerId={selectedId}
+                                            containerData={containers.find(c => c.id === selectedId) ?? null}
+                                            initialTab={selectedTab}
+                                            onClose={() => {
+                                                setSelectedId(null);
+                                                setSelectedTab(undefined);
+                                            }}
+                                        />
+                                    ) : (
+                                        <ProjectVolumesPanel
+                                            projectId={id!}
+                                            onClose={() => setShowVolumesPanel(false)}
+                                        />
+                                    )}
                                 </div>
                             </ResizablePanel>
                         </>
@@ -151,6 +194,14 @@ const ProjectDetail: React.FC = () => {
                     onSubmit={handleCreateContainer}
                     onClose={() => setShowModal(false)}
                     creating={creating}
+                />
+            )}
+
+            {showTemplateModal && id && (
+                <TemplateDeployModal
+                    projectId={id}
+                    onClose={() => setShowTemplateModal(false)}
+                    onDeployed={() => { setShowTemplateModal(false); fetchData(); }}
                 />
             )}
         </div>
