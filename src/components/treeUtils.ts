@@ -23,6 +23,9 @@ export interface ContainerItem {
     branch?: string;
     version?: string;
     replicas?: number;
+    container_type?: string;
+    template_name?: string;
+    image_id?: string;
     ingress?: { subdomain?: string; status?: string };
     service?: { type?: string; ports?: any; is_active?: boolean; internal_ip?: string; external_ip?: string; status?: string };
     volumes?: { id: string; name?: string; mount_path?: string; size_mb?: number }[];
@@ -148,6 +151,9 @@ export function buildFlow(containers: ContainerItem[]): { nodes: Node[]; edges: 
                     id: c.id, name: c.name, status: c.status,
                     branch: c.branch, replicas: 1,
                     repo: c.repository_url, version: c.version,
+                    container_type: c.container_type,
+                    template_name: c.template_name,
+                    image_id: c.image_id,
                 },
             });
             if (prevId) edges.push(edge(`e-${prevId}-${c.id}`, prevId, c.id, false, c.id));
@@ -176,6 +182,9 @@ export function buildFlow(containers: ContainerItem[]): { nodes: Node[]; edges: 
                         id: c.id, name: c.name, status: c.status,
                         branch: c.branch, replicas,
                         repo: c.repository_url, version: c.version,
+                        container_type: c.container_type,
+                        template_name: c.template_name,
+                        image_id: c.image_id,
                         podIndex: i,
                         isInGroup: true,
                     },
