@@ -61,6 +61,28 @@ export const containerService = {
     deleteVolume: (volumeId: string) =>
         api.delete(`/app/v1/volumes/${volumeId}`),
 
+    getProjectVolumes: (projectId: string) =>
+        api.get(`/app/v1/projects/${projectId}/volumes`),
+
+    createProjectVolume: (projectId: string, data: { name: string; size_mb: number; mount_path: string; container_id?: string }) =>
+        api.post(`/app/v1/projects/${projectId}/volumes`, data),
+
     scaleContainer: (containerId: string, replicas: number) =>
         api.post(`/app/v1/containers/${containerId}/scale`, { replicas }),
+
+    // テンプレート関連
+    getTemplates: () =>
+        api.get('/app/v1/templates'),
+
+    deployFromTemplate: (projectId: string, data: {
+        name: string;
+        template_name: string;
+        env_vars: Record<string, string>;
+        create_service: boolean;
+        volume_size_mb?: number;
+        enable_ingress?: boolean;
+        command?: string;
+        args?: string;
+    }) =>
+        api.post(`/app/v1/projects/${projectId}/containers/from-template`, data),
 };
