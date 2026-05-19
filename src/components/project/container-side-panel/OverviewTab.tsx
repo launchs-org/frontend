@@ -58,15 +58,24 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ container, pods = [], 
     // 表示用ドット: 適用中は selected 数を先行表示
     const displayed = isBusy ? selected : current;
 
+    const isDatabase = container.container_type === 'database';
+
+    const infoItems = isDatabase
+        ? [
+            { label: 'テンプレート', value: container.template_name },
+            { label: 'イメージ', value: container.image_id },
+          ]
+        : [
+            { label: 'リポジトリ', value: container.repository_url },
+            { label: 'ブランチ', value: container.branch },
+            { label: 'パス', value: container.directory || '/' },
+          ];
+
     return (
         <div className="p-4 space-y-4">
             {/* Container info */}
             <div className="space-y-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                {[
-                    { label: 'リポジトリ', value: container.repository_url },
-                    { label: 'ブランチ', value: container.branch },
-                    { label: 'パス', value: container.directory || '/' },
-                ].map(item => (
+                {infoItems.map(item => (
                     <div key={item.label} className="flex justify-between items-start gap-4 text-[11px]">
                         <span className="text-gray-400 font-medium shrink-0">{item.label}</span>
                         <span className="text-gray-700 font-mono text-right break-all">{item.value}</span>
@@ -120,8 +129,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ container, pods = [], 
                 </div>
             )}
 
-            {/* Scaling UI */}
-            <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100 space-y-3">
+            {/* Scaling UI: app type only */}
+            {!isDatabase && <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100 space-y-3">
                 <div className="flex justify-between items-center">
                     <span className="text-[11px] text-gray-500 font-medium">POD スケーリング</span>
                     <span className="text-[10px] text-gray-400 font-mono">最大 {MAX_REPLICAS}</span>
@@ -220,7 +229,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ container, pods = [], 
                         </>
                     )}
                 </button>
-            </div>
+            </div>}
         </div>
     );
 };

@@ -187,7 +187,14 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
         { id: 'delete', label: '削除', icon: Trash2 },
     ];
 
+    const isDatabase = container?.container_type === 'database';
+
     if (!container) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-blue-500" /></div>;
+
+    const visibleTabs = tabs.filter(tab => {
+        if (isDatabase && (tab.id === 'builds' || tab.id === 'build-logs')) return false;
+        return true;
+    });
 
     return (
         <div className="flex flex-col h-full bg-white text-gray-900">
@@ -203,18 +210,32 @@ export const ContainerSidePanel: React.FC<ContainerSidePanelProps> = ({ containe
                     <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded transition-colors"><X size={16} className="text-gray-400" /></button>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={() => confirm('再デプロイしますか？') && containerService.redeployContainer(containerId).then(fetchData)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm transition-all"><RotateCcw size={12} /><span>再デプロイ</span></button>
-                    <button onClick={() => confirm('再ビルドしますか？') && containerService.rebuildContainer(containerId).then(() => { setActiveTab('build-logs'); fetchData(); })} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 shadow-sm transition-all"><RotateCw size={12} /><span>再ビルド</span></button>
+                    {isDatabase ? (
+                        <>
+                            {container.status === 'Stopped' && (
+                                <button onClick={() => confirm('起動しますか？') && containerService.scaleContainer(containerId, 1).then(fetchData)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-green-600 bg-green-50 border border-green-100 rounded-lg hover:bg-green-100 shadow-sm transition-all"><RotateCw size={12} /><span>起動</span></button>
+                            )}
+                            {container.status === 'Running' && (
+                                <button onClick={() => confirm('停止しますか？') && containerService.scaleContainer(containerId, 0).then(fetchData)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm transition-all"><RotateCcw size={12} /><span>停止</span></button>
+                            )}
+                            <button onClick={() => confirm('再デプロイしますか？') && containerService.redeployContainer(containerId).then(fetchData)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm transition-all"><RotateCcw size={12} /><span>再デプロイ</span></button>
+                        </>
+                    ) : (
+                        <>
+                            <button onClick={() => confirm('再デプロイしますか？') && containerService.redeployContainer(containerId).then(fetchData)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm transition-all"><RotateCcw size={12} /><span>再デプロイ</span></button>
+                            <button onClick={() => confirm('再ビルドしますか？') && containerService.rebuildContainer(containerId).then(() => { setActiveTab('build-logs'); fetchData(); })} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 shadow-sm transition-all"><RotateCw size={12} /><span>再ビルド</span></button>
+                        </>
+                    )}
                 </div>
             </div>
 
             {/* Tabs */}
             <div className="flex-shrink-0 flex overflow-x-auto scrollbar-hide border-b bg-white">
-                {tabs.map(tab => (
+                {visibleTabs.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn(
                         "flex flex-col items-center gap-1 px-3 py-2 text-[12px] font-bold transition-all whitespace-nowrap border-b-2 min-w-[56px]",
-                        activeTab === tab.id 
-                            ? (tab.id === 'delete' ? "border-red-500 text-red-600 bg-red-50/30" : "border-blue-500 text-blue-600 bg-blue-50/30") 
+                        activeTab === tab.id
+                            ? (tab.id === 'delete' ? "border-red-500 text-red-600 bg-red-50/30" : "border-blue-500 text-blue-600 bg-blue-50/30")
                             : "border-transparent text-gray-400 hover:text-gray-600"
                     )}>
                         <tab.icon size={14} />

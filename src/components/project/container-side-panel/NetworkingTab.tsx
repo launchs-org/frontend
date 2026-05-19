@@ -25,6 +25,9 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
     fetchData
 }) => {
     const svc = container?.service;
+    const isDatabase = container?.container_type === 'database';
+    // テンプレートコンテナで ingress が未作成の場合は外部公開不可
+    const ingressDisabled = isDatabase && !container?.ingress;
 
     // ポートはローカル state で管理する
     const [localPorts, setLocalPorts] = useState<any[]>(() => {
@@ -158,15 +161,20 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
                 )}
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className={`bg-white rounded-xl border overflow-hidden ${ingressDisabled ? 'border-gray-100 opacity-60' : 'border-gray-100'}`}>
                 <div className="px-3 py-2 bg-gray-50 border-b flex justify-between items-center">
                     <div className="flex items-center gap-2 text-[11px] font-bold text-gray-700">
-                        <Globe size={14} className="text-green-500" />
+                        <Globe size={14} className={ingressDisabled ? 'text-gray-300' : 'text-green-500'} />
                         <span>外部公開 (Ingress)</span>
                         {isIngressPending && (
                             <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 border border-amber-200 rounded text-[9px] text-amber-600 font-bold">
                                 <Loader2 size={9} className="animate-spin" />
                                 作成中
+                            </span>
+                        )}
+                        {ingressDisabled && (
+                            <span className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[9px] text-gray-400 font-bold">
+                                このテンプレートでは無効
                             </span>
                         )}
                     </div>
@@ -175,7 +183,11 @@ export const NetworkingTab: React.FC<NetworkingTabProps> = ({
                     </span>
                 </div>
                 <div className="p-3 space-y-4">
-                    {container.ingress ? (
+                    {ingressDisabled ? (
+                        <p className="text-[11px] text-gray-400 text-center py-2">
+                            このテンプレートは外部公開に対応していません
+                        </p>
+                    ) : container.ingress ? (
                         <>
                             <div className="space-y-1">
                                 <p className="text-[12px] font-bold text-gray-400">DEFAULT DOMAIN</p>
